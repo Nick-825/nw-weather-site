@@ -1,0 +1,26 @@
+cd ~/nw-weather-site
+
+# создаём .gitignore
+cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.pyc
+
+# venvs
+venv/
+.venv/
+env/
+site/          # <-- твой локальный venv
+# OS
+.DS_Store
+
+# secrets
+.env
+EOF
+
+# убрать из Git всё лишнее, но оставить на диске
+git rm -r --cached site venv .venv env __pycache__ || true
+git add .gitignore
+git add .
+git commit -m "cleanup: remove local venv from repo and add .gitignore"
+git push
