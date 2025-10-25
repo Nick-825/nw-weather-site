@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-6">Поиск погоды по городу</h2>
+
+<div class="max-w-xl">
+  <div class="relative">
+    <input id="city-input" type="text"
+           placeholder="Введите город (например, Санкт-Петербург)"
+           class="w-full rounded-xl bg-slate-900/70 ring-1 ring-white/5 px-4 py-3 outline-none focus:ring-cyan-500"
+           autocomplete="off">
+    <div id="suggestions" class="absolute z-10 mt-2 w-full rounded-xl bg-slate-900 ring-1 ring-white/10 hidden"></div>
+  </div>
+
+  <div id="result" class="mt-6 hidden">
+    <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5">
+      <div class="text-lg font-semibold" id="res-title"></div>
+      <div class="text-3xl font-bold mt-2" id="res-temp"></div>
+      <div class="grid grid-cols-3 gap-3 text-sm mt-4">
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Ощущается</div>
+          <div class="font-medium" id="res-feels"></div>
+        </div>
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Осадки</div>
+          <div class="font-medium" id="res-precip"></div>
+        </div>
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Ветер</div>
+          <div class="font-medium" id="res-wind"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const input = $("#city-input");
+const box = $("#suggestions");
+let debounce;
+
+input.addEventListener("input", ()=>{
+  clearTimeout(debounce);
+  const q = input.value.trim();
+  if(!q){ box.classList.add("hidden"); return; }
+
+  debounce = setTimeout(async ()=>{
+    const r = await fetch(`/api/cities?q=${encodeURIComponent(q)}`);
+    const items = await r.json();
+    if(!items.length){ box.classList.add("hidden"); return; }
+    box.innerHTML = items.map(it => `
+      <button data-lat="${it.lat}" data-lon="${it.lon}" data-name="${it.name}${it.admin1?', '+it.admin1:''}${it.country?', '+it.country:''}"
+        class="w-full text-left px-4 py-2 hover:bg-slate-800">${it.name}
+        <span class="text-slate-400 text-xs">${it.admin1? ' • '+it.admin1 : ''}${it.country? ' • '+it.country : ''}</span>
+      </button>
+    `).join("");
+    box.classList.remove("hidden");
+
+    box.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", async ()=>{
+        input.value = btn.dataset.name;
+        box.classList.add("hidden");
+        const lat = btn.dataset.lat, lon = btn.dataset.lon;
+        const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+        const w = await res.json();
+        $("#result").classList.remove("hidden");
+        $("#res-title").textContent = btn.dataset.name;
+        $("#res-temp").textContent = w.temp ? `${w.temp.toFixed(1)}°C` : "—";
+        $("#res-feels").textContent = w.feels ? `${w.feels.toFixed(1)}°C` : "—";
+        $("#res-precip").textContent = w.precip ?? "—";
+        $("#res-wind").textContent = w.wind ?? "—";
+      });
+    });
+  }, 250);
+});
+</script>
+{% endblock %}
