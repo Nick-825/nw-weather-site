@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid md:grid-cols-3 gap-6">
+  <section class="col-span-2 space-y-4">
+    <h2 class="text-xl font-semibold">Погода (СЗФО)</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for row in weather %}
+        <div class="rounded-2xl bg-slate-900 p-4">
+          <div class="font-medium">{{ row.city }}</div>
+          {% if row.error %}
+            <div class="text-red-400 text-sm mt-2">Ошибка: {{ row.error }}</div>
+          {% else %}
+            <div class="text-3xl mt-2">{{ row.temp|round(1) }}°C</div>
+            <div class="text-sm mt-1">Ощущается: {{ row.feels|round(1) }}°C</div>
+            <div class="text-sm">Осадки: {{ row.precip }} мм</div>
+            <div class="text-sm">Ветер: {{ row.wind }} м/с</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <h2 class="text-xl font-semibold mt-6">Новости</h2>
+    <div class="space-y-3">
+      {% for n in headlines %}
+        <a class="block rounded-xl bg-slate-900 p-4 hover:bg-slate-800 transition"
+           href="{{ n.link }}" target="_blank" rel="noopener">
+          <div class="text-sm text-slate-400">{{ n.source }} • {{ n.published }}</div>
+          <div class="font-medium">{{ n.title }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <aside class="space-y-4">
+    <h2 class="text-xl font-semibold">Курсы ЦБ РФ</h2>
+    <div class="rounded-2xl bg-slate-900 p-4 space-y-3">
+      {% for code, r in rates.items() %}
+        <div class="flex items-baseline justify-between">
+          <div class="font-medium">{{ code }} • {{ r.name }}</div>
+          <div class="text-lg">{{ '%.4f'|format(r.value) }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+{% endblock %}
