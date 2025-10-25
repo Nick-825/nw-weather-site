@@ -4,11 +4,12 @@
 <div class="grid lg:grid-cols-3 gap-8">
   <!-- Weather + News -->
   <section class="lg:col-span-2 space-y-8">
-    <div>
+
+    <div id="weather">
       <h2 class="text-xl font-semibold mb-4">Погода (СЗФО)</h2>
       <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {% for row in weather %}
-        <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5 shadow-soft hover:translate-y-[-2px] transition">
+        <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5 hover:translate-y-[-2px] transition">
           <div class="flex items-start justify-between">
             <div>
               <div class="text-base font-semibold">{{ row.city }}</div>
@@ -17,9 +18,8 @@
                 <div class="text-xs text-slate-400 mt-1">Ощущается: {{ row.feels|round(1) }}°C</div>
               {% endif %}
             </div>
-            <div class="h-10 w-10 rounded-xl bg-brand-500/15 ring-1 ring-brand-400/20 grid place-items-center">
-              <!-- tiny icon -->
-              <svg viewBox="0 0 24 24" class="h-5 w-5"><path fill="currentColor" d="M6 14a6 6 0 1 1 11.31 3H6a3 3 0 0 1 0-6 6 6 0 0 1 0 3z"/></svg>
+            <div class="h-10 w-10 rounded-xl bg-cyan-500/15 ring-1 ring-cyan-400/20 grid place-items-center" title="{{ row.desc }}">
+              <span class="{{ row.anim }}">{{ row.icon }}</span>
             </div>
           </div>
 
@@ -58,6 +58,7 @@
         {% endfor %}
       </div>
     </div>
+
   </section>
 
   <!-- Rates -->
