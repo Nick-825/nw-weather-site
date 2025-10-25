@@ -1,12 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>{{ title or "Северо-Запад: погода • новости • курсы" }}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or "Северо-Запад: погода" }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html { scroll-behavior: smooth; }
@@ -14,41 +11,31 @@
     @keyframes wiggle { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-6deg)} }
     @keyframes pulse-soft { 0%,100%{opacity:.9} 50%{opacity:1} }
     .float { animation: float 3s ease-in-out infinite; }
-    .wiggle { animation: wiggle 1.8s ease-in-out infinite; transform-origin:center; display:inline-block; }
+    .wiggle { animation: wiggle 2.5s ease-in-out infinite; transform-origin:center; display:inline-block; }
     .pulse { animation: pulse-soft 2.2s ease-in-out infinite; }
-    /* карточки: чтобы подписи НЕ «выползали» */
     .mini-badge { font-size: 11px; line-height: 1.1; word-break: break-word; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100">
-  <header class="relative overflow-hidden" id="top">
-    <div class="absolute inset-0 bg-gradient-to-r from-cyan-900 via-cyan-800 to-cyan-700 opacity-40"></div>
-    <div class="relative max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-      <a href="#top" class="flex items-center gap-3">
-        <div class="h-10 w-10 rounded-xl bg-cyan-500/20 ring-1 ring-cyan-400/30 grid place-items-center">
-          <span class="spin-slow">☀️</span>
-        </div>
-        <div>
-          <h1 class="text-2xl font-bold">Северо-Запад: погода • новости • курсы</h1>
-          <p class="text-xs text-slate-300">MVP на Flask</p>
-        </div>
-      </a>
-      <nav class="hidden md:flex gap-6 text-sm text-slate-300">
-      <a class="hover:text-white" href="/">Главная</a>
-      <a class="hover:text-white" href="/rates">Курсы</a>
-      <a class="hover:text-white" href="/news">Новости</a>
-      <a class="hover:text-white" href="/weather">Поиск</a>
-      </nav>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <header class="bg-gradient-to-r from-cyan-900 to-slate-900 p-4 flex items-center justify-between shadow">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-yellow-400/90 rounded-full grid place-items-center text-slate-900 font-bold wiggle">☀️</div>
+      <h1 class="font-bold text-xl">Северо-Запад: погода • новости • курсы</h1>
     </div>
+    <nav class="hidden md:flex gap-6 text-sm text-slate-300">
+      <a href="/" class="hover:text-white">Главная</a>
+      <a href="/rates" class="hover:text-white">Курсы</a>
+      <a href="/news" class="hover:text-white">Новости</a>
+      <a href="/weather" class="hover:text-white">Поиск</a>
+    </nav>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 py-8">
+  <main class="max-w-6xl mx-auto p-6">
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="max-w-7xl mx-auto px-4 py-8 text-sm text-slate-400">
-    © {{ 2025 }} • Северо-Запад • Flask + Tailwind
+  <footer class="text-center text-slate-500 text-sm py-6">
+    © {{ 2025 }} Северо-Запад • Flask + Railway • Open-Meteo API
   </footer>
 </body>
 </html>
-
