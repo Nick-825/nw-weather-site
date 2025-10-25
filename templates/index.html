@@ -29,13 +29,46 @@
   {% endfor %}
 </div>
 
-<h2 class="text-2xl font-bold mt-10 mb-4">Курсы ЦБ РФ</h2>
-<div class="bg-slate-900/70 rounded-2xl ring-1 ring-white/10 p-5 max-w-md">
+<h2 class="text-2xl font-bold mt-10 mb-4 flex items-center gap-2">
+  <span class="text-3xl">💱</span>
+  Курсы ЦБ РФ
+</h2>
+{% if rates_updated %}
+<p class="text-xs text-slate-400 -mt-3 mb-4">Обновлено: {{ rates_updated }}</p>
+{% endif %}
+<div class="grid gap-5 md:grid-cols-3">
   {% for code, r in rates.items() %}
-  <div class="flex justify-between py-1">
-    <div class="text-slate-300">{{ code }} • {{ r.name }}</div>
-    <div class="font-semibold">{{ '%.4f'|format(r.value) }}</div>
-  </div>
+  <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br {{ r.accent }} ring-1 ring-white/10 p-4 shadow-lg">
+    <div class="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-white/10 blur-3xl"></div>
+    <div class="relative flex flex-col gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 shrink-0 rounded-2xl bg-black/20 ring-2 ring-white/20 grid place-items-center text-3xl">
+          {{ r.emoji or r.symbol or '¤' }}
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-widest text-white/80">{{ code }}</div>
+          <div class="text-base font-semibold text-white">{{ r.name }}</div>
+        </div>
+      </div>
+      <div class="flex items-baseline justify-between">
+        <div class="text-2xl font-bold text-white">
+          <span class="align-middle">{{ r.symbol or code }}</span>
+          <span class="align-middle">{{ '%.4f'|format(r.value) }}</span>
+        </div>
+        {% if r.change is not none %}
+        {% set is_positive = r.change >= 0 %}
+        <div class="text-sm font-medium {% if is_positive %}text-emerald-200{% else %}text-rose-200{% endif %}">
+          {% if is_positive %}▲{% else %}▼{% endif %}
+          {% if r.change_percent is not none %}
+            {{ '%.2f'|format(r.change_percent|abs) }}%
+          {% else %}
+            {{ '%.4f'|format(r.change|abs) }}
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </article>
   {% endfor %}
 </div>
 
