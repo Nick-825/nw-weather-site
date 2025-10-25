@@ -1,3 +1,4 @@
+from services.cache import ttl_cache
 import requests
 from datetime import datetime
 
@@ -24,6 +25,10 @@ def fetch_open_meteo(lat, lon):
     r.raise_for_status()
     return r.json()
 
+@ttl_cache(600)
+def get_region_weather():
+    ...
+    
 def get_region_weather():
     out = []
     for c in CITIES:
@@ -41,4 +46,5 @@ def get_region_weather():
             })
         except Exception as e:
             out.append({"city": c["name"], "error": str(e)})
+
     return out
