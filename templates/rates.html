@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-6">Курсы ЦБ РФ</h2>
+
+<div class="bg-slate-900/70 rounded-2xl ring-1 ring-white/10 p-5 max-w-md">
+  {% for code, r in rates.items() %}
+  <div class="flex justify-between py-1">
+    <div class="text-slate-300">{{ code }} • {{ r.name }}</div>
+    <div class="font-semibold">{{ '%.4f'|format(r.value) }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
