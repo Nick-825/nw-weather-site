@@ -10,23 +10,41 @@
       <div class="flex items-start justify-between gap-3">
         <div>
           <div class="font-semibold text-lg">{{ row.city }}</div>
-          <div class="text-sm text-slate-400">Ощущается: {{ row.feels }}°C</div>
+          <div class="text-sm text-slate-400">Ощущается: {{ row.feels is not none and '%.1f'|format(row.feels) ~ '°C' or '—' }}</div>
         </div>
         <div class="text-3xl float">{{ row.icon or "☁️" }}</div>
       </div>
-      <div class="text-4xl font-bold tracking-tight">{{ row.temp }}°C</div>
+      <div class="text-4xl font-bold tracking-tight">{{ row.temp is not none and '%.1f'|format(row.temp) ~ '°C' or '—' }}</div>
       <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
         <div class="rounded-xl bg-slate-800/60 p-3">
-          <div class="mini-badge text-slate-400">Осадки</div>
-          <div class="font-medium">{{ row.precip }} мм</div>
+          <div class="mini-badge text-slate-400">Осадки сейчас</div>
+          <div class="font-medium">{{ row.precip is not none and '%.1f'|format(row.precip) ~ ' мм' or '—' }}</div>
         </div>
         <div class="rounded-xl bg-slate-800/60 p-3">
-          <div class="mini-badge text-slate-400">Ветер</div>
-          <div class="font-medium">{{ row.wind }} м/с</div>
+          <div class="mini-badge text-slate-400">Ветер сейчас</div>
+          <div class="font-medium">{{ row.wind is not none and '%.1f'|format(row.wind) ~ ' м/с' or '—' }}</div>
         </div>
         <div class="rounded-xl bg-slate-800/60 p-3">
           <div class="mini-badge text-slate-400">Направление</div>
-          <div class="font-medium">{{ row.wdir }}°</div>
+          <div class="font-medium">{{ row.wdir is not none and row.wdir|round(0) ~ '°' or '—' }}</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
+        <div class="rounded-xl bg-slate-800/60 p-3">
+          <div class="mini-badge text-slate-400">Макс за сутки</div>
+          <div class="font-medium">{{ row.temp_max is not none and '%.1f'|format(row.temp_max) ~ '°C' or '—' }}</div>
+        </div>
+        <div class="rounded-xl bg-slate-800/60 p-3">
+          <div class="mini-badge text-slate-400">Мин за сутки</div>
+          <div class="font-medium">{{ row.temp_min is not none and '%.1f'|format(row.temp_min) ~ '°C' or '—' }}</div>
+        </div>
+        <div class="rounded-xl bg-slate-800/60 p-3">
+          <div class="mini-badge text-slate-400">Осадки за сутки</div>
+          <div class="font-medium">{{ row.precip_sum is not none and '%.1f'|format(row.precip_sum) ~ ' мм' or '—' }}</div>
+        </div>
+        <div class="rounded-xl bg-slate-800/60 p-3">
+          <div class="mini-badge text-slate-400">Порывы до</div>
+          <div class="font-medium">{{ row.wind_max is not none and '%.1f'|format(row.wind_max) ~ ' м/с' or '—' }}</div>
         </div>
       </div>
     </article>
