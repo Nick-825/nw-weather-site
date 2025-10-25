@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-6">Прогноз на 7 дней</h2>
+<p class="text-sm text-slate-400 mb-6">Введите город и получите сводку погоды на ближайшие семь дней: температуры, осадки, ветер и время восхода/заката.</p>
+<div class="max-w-3xl">
+  <div class="relative">
+    <input id="city-input" type="text"
+           placeholder="Введите город (например, Архангельск)"
+           class="w-full rounded-xl bg-slate-900/70 ring-1 ring-white/5 px-4 py-3 outline-none focus:ring-cyan-500"
+           autocomplete="off">
+    <div id="suggestions" class="absolute z-10 mt-2 w-full rounded-xl bg-slate-900 ring-1 ring-white/10 hidden"></div>
+  </div>
+
+  <div id="result" class="mt-6 hidden space-y-4">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+      <div>
+        <div class="text-lg font-semibold" id="res-title"></div>
+        <div class="text-xs text-slate-400" id="res-timezone"></div>
+      </div>
+      <div class="text-xs text-slate-400" id="res-updated"></div>
+    </div>
+    <div id="days-empty" class="rounded-2xl bg-slate-900/70 p-5 text-sm text-slate-400 hidden">
+      Нет данных недельного прогноза для выбранной точки.
+    </div>
+    <div id="days-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const input = $("#city-input");
+const box = $("#suggestions");
+let debounce;
+
+const weatherCodeGroups = [
+  { codes: [0], icon: "☀️", desc: "Ясно" },
+  { codes: [1, 2], icon: "🌤️", desc: "Переменная облачность" },
+  { codes: [3], icon: "☁️", desc: "Облачно" },
+  { codes: [45, 48], icon: "🌫️", desc: "Туман" },
+  { codes: [51, 53, 55], icon: "🌦️", desc: "Морось" },
+  { codes: [56, 57], icon: "🌧️", desc: "Ледяная морось" },
+  { codes: [61, 63, 65], icon: "🌧️", desc: "Дождь" },
+  { codes: [66, 67], icon: "🌧️", desc: "Ледяной дождь" },
+  { codes: [71, 73, 75, 77], icon: "❄️", desc: "Снег" },
+  { codes: [80, 81, 82], icon: "🌦️", desc: "Ливни" },
+  { codes: [85, 86], icon: "🌨️", desc: "Снегопад" },
+  { codes: [95, 96, 99], icon: "⛈️", desc: "Гроза" }
+];
+
+const codeToIcon = code => {
+  if (typeof code !== "number") {
+    return { icon: "🌡️", desc: "Прогноз" };
+  }
+  for (const group of weatherCodeGroups) {
+    if (group.codes.includes(code)) {
+      return group;
+    }
+  }
+  return { icon: "🌡️", desc: "Прогноз" };
+};
+
+const formatNumber = (value, digits = 1) => {
+  return typeof value === "number" && !Number.isNaN(value)
+    ? value.toFixed(digits)
+    : null;
+};
+
+const formatWithUnit = (value, unit = "", digits = 1) => {
+  const num = formatNumber(value, digits);
+  if (num === null) {
+    return "—";
+  }
+  const trimmedUnit = unit ? (unit.startsWith("°") ? unit : ` ${unit}`) : "";
+  return `${num}${trimmedUnit}`;
+};
+
+const formatDate = iso => {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const raw = date.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+};
+
+const formatTime = iso => {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+};
+
+input.addEventListener("input", () => {
+  clearTimeout(debounce);
+  const q = input.value.trim();
+  if (!q) {
+    box.classList.add("hidden");
+    return;
+  }
+
+  debounce = setTimeout(async () => {
+    const r = await fetch(`/api/cities?q=${encodeURIComponent(q)}`);
+    const items = await r.json();
+    if (!items.length) {
+      box.classList.add("hidden");
+      return;
+    }
+    box.innerHTML = items.map(it => `
+      <button data-lat="${it.lat}" data-lon="${it.lon}" data-name="${it.name}${it.admin1?', '+it.admin1:''}${it.country?', '+it.country:''}"
+        class="w-full text-left px-4 py-2 hover:bg-slate-800">${it.name}
+        <span class="text-slate-400 text-xs">${it.admin1? ' • '+it.admin1 : ''}${it.country? ' • '+it.country : ''}</span>
+      </button>
+    `).join("");
+    box.classList.remove("hidden");
+
+    box.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        input.value = btn.dataset.name;
+        box.classList.add("hidden");
+        const lat = btn.dataset.lat, lon = btn.dataset.lon;
+        const res = await fetch(`/api/weather/weekly?lat=${lat}&lon=${lon}`);
+        const w = await res.json();
+        if (w.error) {
+          $("#result").classList.add("hidden");
+          alert(w.error);
+          return;
+        }
+        const units = w.units || {};
+        const days = Array.isArray(w.days) ? w.days : [];
+        $("#result").classList.remove("hidden");
+        $("#res-title").textContent = btn.dataset.name;
+        $("#res-timezone").textContent = w.timezone ? `Часовой пояс: ${w.timezone}` : "";
+        $("#res-updated").textContent = `Обновлено: ${new Date().toLocaleString('ru-RU')}`;
+
+        const grid = $("#days-grid");
+        const empty = $("#days-empty");
+        if (!days.length) {
+          grid.innerHTML = "";
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+        const windUnit = units.wind_speed_10m_max || "м/с";
+        const windDigits = windUnit === "м/с" ? 1 : 0;
+        grid.innerHTML = days.map(day => {
+          const iconData = codeToIcon(day.code);
+          const dateLabel = formatDate(day.time);
+          const max = formatWithUnit(day.temp_max, units.temperature_2m_max || "°C");
+          const min = formatWithUnit(day.temp_min, units.temperature_2m_min || "°C");
+          const precip = formatWithUnit(day.precip_sum, units.precipitation_sum || "мм");
+          const wind = formatWithUnit(day.wind_max, windUnit, windDigits);
+          const sunrise = formatTime(day.sunrise);
+          const sunset = formatTime(day.sunset);
+          return `
+            <article class="flex flex-col gap-4 rounded-2xl bg-slate-900/70 p-5 ring-1 ring-white/5">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm uppercase tracking-wide text-slate-400">${dateLabel}</div>
+                  <div class="text-sm text-slate-400">${iconData.desc}</div>
+                </div>
+                <div class="text-3xl">${iconData.icon}</div>
+              </div>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-xl bg-slate-800/60 p-3">
+                  <div class="text-xs text-slate-400">Макс</div>
+                  <div class="font-medium">${max}</div>
+                </div>
+                <div class="rounded-xl bg-slate-800/60 p-3">
+                  <div class="text-xs text-slate-400">Мин</div>
+                  <div class="font-medium">${min}</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 gap-3 text-xs text-slate-400">
+                <div>Осадки за день: <span class="text-slate-100">${precip}</span></div>
+                <div>Ветер, макс: <span class="text-slate-100">${wind}</span></div>
+                <div>Восход: <span class="text-slate-100">${sunrise}</span></div>
+                <div>Закат: <span class="text-slate-100">${sunset}</span></div>
+              </div>
+            </article>
+          `;
+        }).join("");
+      });
+    });
+  }, 250);
+});
+</script>
+{% endblock %}
