@@ -1,81 +1,53 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="grid lg:grid-cols-3 gap-8">
-  <!-- Weather + News -->
-  <section class="lg:col-span-2 space-y-8">
-
-    <div id="weather">
-      <h2 class="text-xl font-semibold mb-4">Погода (СЗФО)</h2>
-      <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        {% for row in weather %}
-        <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5 hover:translate-y-[-2px] transition">
-          <div class="flex items-start justify-between">
-            <div>
-              <div class="text-base font-semibold">{{ row.city }}</div>
-              {% if not row.error %}
-                <div class="text-4xl font-bold mt-1">{{ row.temp|round(1) }}°C</div>
-                <div class="text-xs text-slate-400 mt-1">Ощущается: {{ row.feels|round(1) }}°C</div>
-              {% endif %}
-            </div>
-            <div class="h-10 w-10 rounded-xl bg-cyan-500/15 ring-1 ring-cyan-400/20 grid place-items-center" title="{{ row.desc }}">
-              <span class="{{ row.anim }}">{{ row.icon }}</span>
-            </div>
-          </div>
-
-          {% if row.error %}
-            <div class="text-red-400 text-sm mt-3">Ошибка: {{ row.error }}</div>
-          {% else %}
-            <div class="grid grid-cols-3 gap-3 text-sm mt-4">
-              <div class="bg-slate-800/60 rounded-xl p-3">
-                <div class="text-xs text-slate-400">Осадки</div>
-                <div class="font-medium">{{ row.precip }} мм</div>
-              </div>
-              <div class="bg-slate-800/60 rounded-xl p-3">
-                <div class="text-xs text-slate-400">Ветер</div>
-                <div class="font-medium">{{ row.wind }} м/с</div>
-              </div>
-              <div class="bg-slate-800/60 rounded-xl p-3">
-                <div class="text-xs text-slate-400">Направление</div>
-                <div class="font-medium">{{ row.wdir }}°</div>
-              </div>
-            </div>
-          {% endif %}
-        </div>
-        {% endfor %}
+<h2 class="text-2xl font-bold mb-6">Погода (СЗФО)</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
+  {% for row in weather %}
+  <div class="bg-slate-900/70 rounded-2xl ring-1 ring-white/10 p-5 shadow-lg">
+    <div class="flex justify-between items-center">
+      <div class="font-semibold">{{ row.city }}</div>
+      <div class="text-2xl float">{{ row.icon or "☁️" }}</div>
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ row.temp }}°C</div>
+    <div class="text-sm text-slate-400">Ощущается: {{ row.feels }}°C</div>
+    <div class="grid grid-cols-3 gap-3 text-sm mt-4">
+      <div class="bg-slate-800/60 rounded-xl p-3">
+        <div class="mini-badge text-slate-400">Осадки</div>
+        <div class="font-medium">{{ row.precip }} мм</div>
+      </div>
+      <div class="bg-slate-800/60 rounded-xl p-3">
+        <div class="mini-badge text-slate-400">Ветер</div>
+        <div class="font-medium">{{ row.wind }} м/с</div>
+      </div>
+      <div class="bg-slate-800/60 rounded-xl p-3">
+        <div class="mini-badge text-slate-400">Направление</div>
+        <div class="font-medium">{{ row.wdir }}°</div>
       </div>
     </div>
+  </div>
+  {% endfor %}
+</div>
 
-    <div id="news">
-      <h2 class="text-xl font-semibold mb-4">Новости</h2>
-      <div class="space-y-3">
-        {% for n in headlines %}
-        <a class="block rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5 hover:bg-slate-900 transition"
-           href="{{ n.link }}" target="_blank" rel="noopener">
-          <div class="text-xs text-slate-400">{{ n.source }} • {{ n.published }}</div>
-          <div class="font-medium mt-1">{{ n.title }}</div>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
+<h2 class="text-2xl font-bold mt-10 mb-4">Курсы ЦБ РФ</h2>
+<div class="bg-slate-900/70 rounded-2xl ring-1 ring-white/10 p-5 max-w-md">
+  {% for code, r in rates.items() %}
+  <div class="flex justify-between py-1">
+    <div class="text-slate-300">{{ code }} • {{ r.name }}</div>
+    <div class="font-semibold">{{ '%.4f'|format(r.value) }}</div>
+  </div>
+  {% endfor %}
+</div>
 
-  </section>
-
-  <!-- Rates -->
-  <aside id="rates" class="space-y-4">
-    <h2 class="text-xl font-semibold">Курсы ЦБ РФ</h2>
-    <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5 space-y-4">
-      {% for code, r in rates.items() %}
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="font-medium">{{ code }}</div>
-          <div class="text-xs text-slate-400">{{ r.name }}</div>
-        </div>
-        <div class="text-lg font-semibold">{{ '%.4f'|format(r.value) }}</div>
-      </div>
-      {% endfor %}
-    </div>
-  </aside>
+<h2 class="text-2xl font-bold mt-10 mb-4">Новости</h2>
+<div class="space-y-3">
+  {% for n in headlines %}
+  <a href="{{ n.link }}" target="_blank" rel="noopener"
+     class="block rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-4 hover:bg-slate-900 transition">
+    <div class="text-xs text-slate-400">{{ n.source }} • {{ n.published }}</div>
+    <div class="font-medium">{{ n.title }}</div>
+  </a>
+  {% endfor %}
 </div>
 
 {% endblock %}
