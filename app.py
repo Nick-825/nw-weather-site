@@ -15,20 +15,26 @@ app = Flask(__name__)
 @app.route("/")
 def index():
     weather = get_region_weather()
-    rates = get_cbr_rates(["USD", "EUR", "CNY"])
+    rates, rates_updated = get_cbr_rates(["USD", "EUR", "CNY"])
     headlines = get_headlines(limit=8)
     return render_template(
         "index.html",
         title="Северо-Запад: погода • новости • курсы",
         weather=weather,
         rates=rates,
+        rates_updated=rates_updated,
         headlines=headlines,
     )
 
 @app.route("/rates")
 def rates_page():
-    rates = get_cbr_rates(["USD", "EUR", "CNY"])
-    return render_template("rates.html", title="Курсы ЦБ РФ", rates=rates)
+    rates, rates_updated = get_cbr_rates(["USD", "EUR", "CNY"])
+    return render_template(
+        "rates.html",
+        title="Курсы ЦБ РФ",
+        rates=rates,
+        rates_updated=rates_updated,
+    )
 
 @app.route("/news")
 def news_page():
