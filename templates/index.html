@@ -1,3 +1,4 @@
+codex/locate-github-project
 {% extends "base.html" %}
 {% block content %}
 
@@ -95,3 +96,91 @@
 </section>
 
 {% endblock %}
+=======
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="text-2xl font-bold mb-6">Погода (СЗФО)</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
+  {% for row in weather %}
+  <div class="bg-slate-900/70 rounded-2xl ring-1 ring-white/10 p-5 shadow-lg">
+    <div class="flex justify-between items-center">
+      <div class="font-semibold">{{ row.city }}</div>
+      <div class="text-2xl float">{{ row.icon or "☁️" }}</div>
+    </div>
+    <div class="text-3xl font-bold mt-2">{{ row.temp }}°C</div>
+    <div class="text-sm text-slate-400">Ощущается: {{ row.feels }}°C</div>
+    <div class="grid grid-cols-3 gap-3 text-sm mt-4">
+      <div class="bg-slate-800/60 rounded-xl p-3">
+        <div class="mini-badge text-slate-400">Осадки</div>
+        <div class="font-medium">{{ row.precip }} мм</div>
+      </div>
+      <div class="bg-slate-800/60 rounded-xl p-3">
+        <div class="mini-badge text-slate-400">Ветер</div>
+        <div class="font-medium">{{ row.wind }} м/с</div>
+      </div>
+      <div class="bg-slate-800/60 rounded-xl p-3">
+        <div class="mini-badge text-slate-400">Направление</div>
+        <div class="font-medium">{{ row.wdir }}°</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<h2 class="text-2xl font-bold mt-10 mb-4 flex items-center gap-2">
+  <span class="text-3xl">💱</span>
+  Курсы ЦБ РФ
+</h2>
+{% if rates_updated %}
+<p class="text-xs text-slate-400 -mt-3 mb-4">Обновлено: {{ rates_updated }}</p>
+{% endif %}
+<div class="grid gap-5 md:grid-cols-3">
+  {% for code, r in rates.items() %}
+  <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br {{ r.accent }} ring-1 ring-white/10 p-4 shadow-lg">
+    <div class="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-white/10 blur-3xl"></div>
+    <div class="relative flex flex-col gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 shrink-0 rounded-2xl bg-black/20 ring-2 ring-white/20 grid place-items-center text-3xl">
+          {{ r.emoji or r.symbol or '¤' }}
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-widest text-white/80">{{ code }}</div>
+          <div class="text-base font-semibold text-white">{{ r.name }}</div>
+        </div>
+      </div>
+      <div class="flex items-baseline justify-between">
+        <div class="text-2xl font-bold text-white">
+          <span class="align-middle">{{ r.symbol or code }}</span>
+          <span class="align-middle">{{ '%.4f'|format(r.value) }}</span>
+        </div>
+        {% if r.change is not none %}
+        {% set is_positive = r.change >= 0 %}
+        <div class="text-sm font-medium {% if is_positive %}text-emerald-200{% else %}text-rose-200{% endif %}">
+          {% if is_positive %}▲{% else %}▼{% endif %}
+          {% if r.change_percent is not none %}
+            {{ '%.2f'|format(r.change_percent|abs) }}%
+          {% else %}
+            {{ '%.4f'|format(r.change|abs) }}
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<h2 class="text-2xl font-bold mt-10 mb-4">Новости</h2>
+<div class="space-y-3">
+  {% for n in headlines %}
+  <a href="{{ n.link }}" target="_blank" rel="noopener"
+     class="block rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-4 hover:bg-slate-900 transition">
+    <div class="text-xs text-slate-400">{{ n.source }} • {{ n.published }}</div>
+    <div class="font-medium">{{ n.title }}</div>
+  </a>
+  {% endfor %}
+</div>
+
+{% endblock %}
+main
