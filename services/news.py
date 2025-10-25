@@ -1,3 +1,4 @@
+from services.cache import ttl_cache
 import feedparser
 
 FEEDS = [
@@ -5,6 +6,7 @@ FEEDS = [
     "https://tass.ru/rss/v2.xml",       # ТАСС
 ]
 
+@ttl_cache(600)
 def get_headlines(limit=10):
     items = []
     for url in FEEDS:
@@ -17,4 +19,5 @@ def get_headlines(limit=10):
                 "source": feed.feed.get("title", "RSS"),
             })
     # обрежем общий список
+
     return items[:limit]
