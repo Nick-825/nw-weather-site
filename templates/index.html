@@ -1,3 +1,102 @@
+codex/locate-github-project
+{% extends "base.html" %}
+{% block content %}
+
+<section class="space-y-4">
+  <h2 class="text-2xl font-bold">Погода (СЗФО)</h2>
+  <p class="text-sm text-slate-400">Прогноз по ключевым городам округа — карточки читаемы даже на узких экранах.</p>
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    {% for row in weather %}
+    <article class="flex flex-col gap-4 rounded-2xl bg-slate-900/70 p-5 shadow-lg ring-1 ring-white/10">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-semibold text-lg">{{ row.city }}</div>
+          <div class="text-sm text-slate-400">Ощущается: {{ row.feels }}°C</div>
+        </div>
+        <div class="text-3xl float">{{ row.icon or "☁️" }}</div>
+      </div>
+      <div class="text-4xl font-bold tracking-tight">{{ row.temp }}°C</div>
+      <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+        <div class="rounded-xl bg-slate-800/60 p-3">
+          <div class="mini-badge text-slate-400">Осадки</div>
+          <div class="font-medium">{{ row.precip }} мм</div>
+        </div>
+        <div class="rounded-xl bg-slate-800/60 p-3">
+          <div class="mini-badge text-slate-400">Ветер</div>
+          <div class="font-medium">{{ row.wind }} м/с</div>
+        </div>
+        <div class="rounded-xl bg-slate-800/60 p-3">
+          <div class="mini-badge text-slate-400">Направление</div>
+          <div class="font-medium">{{ row.wdir }}°</div>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="space-y-3">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <h2 class="flex items-center gap-2 text-2xl font-bold">
+      <span class="text-3xl">💱</span>
+      Курсы ЦБ РФ
+    </h2>
+    {% if rates_updated %}
+    <p class="text-xs text-slate-400">Обновлено: {{ rates_updated }}</p>
+    {% endif %}
+  </div>
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    {% for code, r in rates.items() %}
+    <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br {{ r.accent }} p-4 shadow-lg ring-1 ring-white/10">
+      <div class="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-white/10 blur-3xl"></div>
+      <div class="relative flex flex-col gap-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/20 text-3xl ring-2 ring-white/20">
+            {{ r.emoji or r.symbol or '¤' }}
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs uppercase tracking-widest text-white/80">{{ code }}</div>
+            <div class="text-base font-semibold leading-tight text-white">{{ r.name }}</div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+          <div class="text-2xl font-bold text-white sm:text-3xl">
+            <span class="align-middle">{{ r.symbol or code }}</span>
+            <span class="align-middle">{{ '%.4f'|format(r.value) }}</span>
+          </div>
+          {% if r.change is not none %}
+          {% set is_positive = r.change >= 0 %}
+          <div class="flex items-center gap-2 text-sm font-medium {% if is_positive %}text-emerald-200{% else %}text-rose-200{% endif %}">
+            <span aria-hidden="true">{% if is_positive %}▲{% else %}▼{% endif %}</span>
+            {% if r.change_percent is not none %}
+            <span>{{ '%.2f'|format(r.change_percent|abs) }}%</span>
+            {% else %}
+            <span>{{ '%.4f'|format(r.change|abs) }}</span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="space-y-4">
+  <h2 class="text-2xl font-bold">Новости</h2>
+  <div class="space-y-3">
+    {% for n in headlines %}
+    <a href="{{ n.link }}" target="_blank" rel="noopener"
+       class="block rounded-2xl bg-slate-900/70 p-4 transition hover:bg-slate-900 ring-1 ring-white/5">
+      <div class="text-xs text-slate-400">{{ n.source }} • {{ n.published }}</div>
+      <div class="font-medium">{{ n.title }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}
+=======
 {% extends "base.html" %}
 {% block content %}
 
@@ -84,3 +183,4 @@
 </div>
 
 {% endblock %}
+main
