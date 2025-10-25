@@ -7,50 +7,38 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-          colors: {
-            brand: { 50:'#ecfeff',100:'#cffafe',200:'#a5f3fc',300:'#67e8f9',400:'#22d3ee',500:'#06b6d4',600:'#0891b2',700:'#0e7490',800:'#155e75',900:'#164e63' }
-          },
-          boxShadow: {
-            soft: '0 10px 30px rgba(2, 132, 199, 0.15)'
-          }
-        }
-      }
-    }
-  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    @keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-3px)} 100%{transform:translateY(0)} }
+    @keyframes spin-slow { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+    @keyframes pulse-soft { 0%,100%{opacity:.9} 50%{opacity:1} }
+    .float { animation: float 3s ease-in-out infinite; }
+    .spin-slow { animation: spin-slow 18s linear infinite; transform-origin:center; display:inline-block; }
+    .pulse { animation: pulse-soft 2.4s ease-in-out infinite; }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100">
-  <!-- Header -->
-  <header class="relative overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-r from-brand-800 via-brand-700 to-brand-600 opacity-40"></div>
-    <div class="relative max-w-7xl mx-auto px-4 py-8">
-      <div class="flex items-center justify-between">
-        <a href="/" class="flex items-center gap-3">
-          <div class="h-10 w-10 rounded-xl bg-brand-500/20 ring-1 ring-brand-400/30 grid place-items-center">
-            <!-- simple logo -->
-            <svg viewBox="0 0 24 24" class="h-6 w-6"><path fill="currentColor" d="M12 2a7 7 0 0 1 7 7v2h1a2 2 0 1 1 0 4h-1v1a6 6 0 1 1-12 0v-1H6a2 2 0 1 1 0-4h1V9a7 7 0 0 1 5-7z"/></svg>
-          </div>
-          <div>
-            <h1 class="text-2xl font-bold leading-tight">Северо-Запад: погода • новости • курсы</h1>
-            <p class="text-sm text-slate-300">MVP на Flask</p>
-          </div>
-        </a>
-        <nav class="hidden md:flex gap-6 text-sm text-slate-300">
-          <a class="hover:text-white" href="/">Главная</a>
-          <a class="hover:text-white" href="#rates">Курсы</a>
-          <a class="hover:text-white" href="#news">Новости</a>
-        </nav>
-      </div>
+  <header class="relative overflow-hidden" id="top">
+    <div class="absolute inset-0 bg-gradient-to-r from-cyan-900 via-cyan-800 to-cyan-700 opacity-40"></div>
+    <div class="relative max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
+      <a href="#top" class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-cyan-500/20 ring-1 ring-cyan-400/30 grid place-items-center">
+          <span class="spin-slow">☀️</span>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">Северо-Запад: погода • новости • курсы</h1>
+          <p class="text-xs text-slate-300">MVP на Flask</p>
+        </div>
+      </a>
+      <nav class="hidden md:flex gap-6 text-sm text-slate-300">
+        <a class="hover:text-white" href="#top">Главная</a>
+        <a class="hover:text-white" href="#rates">Курсы</a>
+        <a class="hover:text-white" href="#news">Новости</a>
+      </nav>
     </div>
   </header>
 
-  <!-- Main -->
   <main class="max-w-7xl mx-auto px-4 py-8">
     {% block content %}{% endblock %}
   </main>
