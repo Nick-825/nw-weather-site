@@ -1,45 +1,43 @@
 {% extends "base.html" %}
 {% block title %}Курсы валют{% endblock %}
 {% block content %}
-<h2 style="margin:0 0 12px 0">Курсы валют</h2>
+<h2 class="text-2xl sm:text-3xl font-bold mb-6">Курсы валют</h2>
 
-<div style="display:grid;gap:24px;max-width:1100px">
+<div class="grid gap-10 max-w-5xl">
   <!-- Фиат -->
-  <section class="glass" style="padding:16px">
-    <h3 style="margin-top:0">Валюты ЦБ РФ</h3>
-    <div style="position:relative">
-      <input id="q-fiat" type="text" placeholder="USD, EUR, фунт…"
-             style="width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#0f172a;color:#fff;padding:12px 14px;outline:none" autocomplete="off">
-      <div id="suggest-fiat" class="sr-only" style="position:absolute;left:0;right:0;margin-top:8px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#0b1220;z-index:20"></div>
+  <section>
+    <h3 class="text-lg font-semibold mb-3">Валюты ЦБ РФ</h3>
+    <div class="relative">
+      <input id="q-fiat" type="text" placeholder="USD, EUR, фунт, юань…"
+             class="w-full rounded-2xl bg-slate-900/70 ring-1 ring-white/10 px-4 py-3 outline-none focus:ring-cyan-500" autocomplete="off">
+      <div id="suggest-fiat" class="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl bg-slate-900 ring-1 ring-white/10 hidden"></div>
     </div>
-    <div id="meta-fiat" style="margin-top:6px;color:#9fb0c3;font-size:12px"></div>
-    <div id="list-fiat" style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
+    <div id="meta-fiat" class="mt-3 text-xs text-slate-400"></div>
+    <div id="list-fiat" class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"></div>
   </section>
 
-  <!-- Крипто -->
-  <section class="glass" style="padding:16px">
-    <h3 style="margin-top:0">Криптовалюты</h3>
-    <div style="position:relative">
+  <!-- Криптовалюты -->
+  <section>
+    <h3 class="text-lg font-semibold mb-3">Криптовалюты</h3>
+    <div class="relative">
       <input id="q-crypto" type="text" placeholder="BTC, TON, ETH…"
-             style="width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#0f172a;color:#fff;padding:12px 14px;outline:none" autocomplete="off">
-      <div id="suggest-crypto" class="sr-only" style="position:absolute;left:0;right:0;margin-top:8px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#0b1220;z-index:20"></div>
+             class="w-full rounded-2xl bg-slate-900/70 ring-1 ring-white/10 px-4 py-3 outline-none focus:ring-cyan-500" autocomplete="off">
+      <div id="suggest-crypto" class="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl bg-slate-900 ring-1 ring-white/10 hidden"></div>
     </div>
-    <div id="meta-crypto" style="margin-top:6px;color:#9fb0c3;font-size:12px"></div>
-    <div id="list-crypto" style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
+    <div id="meta-crypto" class="mt-3 text-xs text-slate-400"></div>
+    <div id="list-crypto" class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"></div>
   </section>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
 (function(){
-  const FALLBACK = {{ {
+  const FALLBACK = {
     "USD":{"emoji":"🇺🇸","symbol":"$"}, "EUR":{"emoji":"🇪🇺","symbol":"€"}, "GBP":{"emoji":"🇬🇧","symbol":"£"},
     "CNY":{"emoji":"🇨🇳","symbol":"¥"}, "JPY":{"emoji":"🇯🇵","symbol":"¥"}, "TRY":{"emoji":"🇹🇷","symbol":"₺"},
     "KZT":{"emoji":"🇰🇿","symbol":"₸"}, "UAH":{"emoji":"🇺🇦","symbol":"₴"}, "AED":{"emoji":"🇦🇪","symbol":"د.إ"},
     "BYN":{"emoji":"🇧🇾","symbol":"Br"}, "AMD":{"emoji":"🇦🇲","symbol":"֏"}, "AZN":{"emoji":"🇦🇿","symbol":"₼"},
     "EGP":{"emoji":"🇪🇬","symbol":"E£"}, "CDF":{"emoji":"🇨🇩","symbol":"FC"}
-  }|tojson }};
+  };
   const CRYPTO_EMOJI = {"BTC":"₿","ETH":"Ξ","LTC":"Ł","XMR":"ɱ","XRP":"✕","TON":"🧿","USDT":"₮","BNB":"Ⓑ"};
 
   const applyFallback = (x) => {
@@ -49,12 +47,104 @@
     return x;
   };
 
-  const card = (x)=>{
-    const pos = typeof x.change_percent==='number' ? x.change_percent>=0 : (typeof x.change==='number' ? x.change>=0 : null);
-    const delta = (typeof x.change_percent==='number') ? `${pos?'▲':'▼'} ${Math.abs(x.change_percent).toFixed(2)}%`
-                : (typeof x.change==='number')        ? `${pos?'▲':'▼'} ${Math.abs(x.change).toFixed(4)}` : '';
-    const badge = delta ? `<div style="font-size:13px;font-weight:600;color:${pos?'#86efac':'#fecaca'}">${delta}</div>` : '';
-    return `
-      <article class="glass" style="padding:14px">
-        <div style="display:flex;gap:12px;align-items:center">
-          <div style="display:grid;place-items:center;width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font
+  const renderCards = (el, payload) => {
+    const items = (payload?.items||[]).map(applyFallback);
+    el.innerHTML = items.map(x=>{
+      const pos = typeof x.change_percent==='number' ? x.change_percent>=0 : (typeof x.change==='number' ? x.change>=0 : null);
+      const delta = (typeof x.change_percent==='number') ? `${pos?'▲':'▼'} ${Math.abs(x.change_percent).toFixed(2)}%`
+                  : (typeof x.change==='number')        ? `${pos?'▲':'▼'} ${Math.abs(x.change).toFixed(4)}` : '';
+      const cls = pos==null ? '' : (pos ? 'text-emerald-200' : 'text-rose-200');
+      return `
+        <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br ${x.accent || 'from-slate-800/80 to-slate-900/80'} p-4 shadow-lg ring-1 ring-white/10">
+          <div class="relative flex flex-col gap-4">
+            <div class="flex items-center gap-3">
+              <div class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/20 text-3xl ring-2 ring-white/20">${x.emoji || x.symbol || '¤'}</div>
+              <div class="min-w-0">
+                <div class="text-xs uppercase tracking-widest text-white/80">${x.code}</div>
+                <div class="text-base font-semibold leading-tight text-white">${x.name || ''}</div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-2xl font-bold text-white sm:text-3xl">
+                <span class="align-middle">${x.symbol || x.code}</span>
+                <span class="align-middle">${(typeof x.value==='number')? x.value.toFixed(4) : '—'}</span>
+              </div>
+              ${delta ? `<div class="text-sm font-medium ${cls}">${delta}</div>` : ``}
+            </div>
+          </div>
+        </article>`;
+    }).join('');
+  };
+
+  // универсальная обвязка поиска c подсказками
+  function attachSearch({input, box, meta, list, search}) {
+    let debounce;
+    const hide = ()=> box.classList.add('hidden');
+    const show = ()=> box.classList.remove('hidden');
+
+    const buildSuggest = (items)=>{
+      if (!items.length) { hide(); return; }
+      box.innerHTML = items.slice(0,10).map(x=>`
+        <button type="button" data-code="${x.code}" class="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-slate-800">
+          <span class="text-xl">${x.emoji || x.symbol || '¤'}</span>
+          <span class="font-medium">${x.code}</span>
+          <span class="text-xs text-slate-400 truncate">${x.name||''}</span>
+        </button>`).join('');
+      show();
+      box.querySelectorAll('button').forEach(b=>{
+        b.addEventListener('click', async ()=>{
+          input.value = b.dataset.code;
+          hide();
+          const payload = await search(b.dataset.code);
+          meta.textContent = payload.updated ? `Данные обновлены: ${payload.updated}` : '';
+          renderCards(list, payload);
+        });
+      });
+    };
+
+    input.addEventListener('input', ()=>{
+      clearTimeout(debounce);
+      const q = input.value.trim();
+      if(!q){ hide(); list.innerHTML=''; meta.textContent=''; return; }
+      debounce = setTimeout(async ()=>{
+        const payload = await search(q);
+        meta.textContent = payload.updated ? `Данные обновлены: ${payload.updated}` : '';
+        renderCards(list, payload);      // сразу отрисовали
+        buildSuggest(payload.items||[]); // и подсказки
+      }, 250);
+    });
+
+    input.addEventListener('keydown', async (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        const q = input.value.trim(); if(!q) return;
+        hide();
+        const payload = await search(q);
+        meta.textContent = payload.updated ? `Данные обновлены: ${payload.updated}` : '';
+        renderCards(list, payload);
+      }
+    });
+
+    document.addEventListener('click', (ev)=>{ if(!box.contains(ev.target) && ev.target!==input) hide(); });
+  }
+
+  // Фиат
+  attachSearch({
+    input:  document.getElementById('q-fiat'),
+    box:    document.getElementById('suggest-fiat'),
+    meta:   document.getElementById('meta-fiat'),
+    list:   document.getElementById('list-fiat'),
+    search: (q)=>fetch(`/api/rates/search?q=${encodeURIComponent(q)}`).then(r=>r.ok?r.json():{items:[],updated:''})
+  });
+
+  // Крипто
+  attachSearch({
+    input:  document.getElementById('q-crypto'),
+    box:    document.getElementById('suggest-crypto'),
+    meta:   document.getElementById('meta-crypto'),
+    list:   document.getElementById('list-crypto'),
+    search: (q)=>fetch(`/api/crypto/search?q=${encodeURIComponent(q)}`).then(r=>r.ok?r.json():{items:[],updated:''})
+  });
+})();
+</script>
+{% endblock %}
