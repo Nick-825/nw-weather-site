@@ -1,19 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 class="text-2xl font-bold mb-4">Курсы валют</h2>
-<p class="text-sm text-slate-400 mb-6">Введите код (USD, EUR, CNY…) или название валюты (например, фунт, иена), выберите из списка и получите курс ЦБ РФ и динамику.</p>
 
 <div class="max-w-3xl">
   <div class="relative">
-    <input id="q" type="text" placeholder="Например: фунт, иена, доллар, евро"
+    <input id="q" type="text" placeholder="USD, EUR, фунт, BTC, TON…"
            class="w-full rounded-2xl bg-slate-900/70 ring-1 ring-white/10 px-4 py-3 outline-none focus:ring-cyan-500" autocomplete="off">
     <div id="suggest" class="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl bg-slate-900 ring-1 ring-white/10 hidden"></div>
   </div>
 
   <div id="meta" class="mt-3 text-xs text-slate-400"></div>
-
   <div id="list" class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"></div>
-  <div id="empty" class="mt-6 hidden rounded-2xl bg-slate-900/70 p-5 text-sm text-slate-400">Выберите валюту из подсказок, чтобы увидеть курс.</div>
 </div>
 
 <script>
@@ -23,20 +20,14 @@
   const box = $('#suggest');
   const list = $('#list');
   const meta = $('#meta');
-  const empty = $('#empty');
   let debounce;
 
   const render = (payload) => {
     const items = (payload && payload.items) || [];
     meta.textContent = payload && payload.updated ? `Данные обновлены: ${payload.updated}` : '';
-    if (!items.length) {
-      list.innerHTML = '';
-      empty.classList.remove('hidden');
-      return;
-    }
-    empty.classList.add('hidden');
     list.innerHTML = items.map(x=>{
-      const isPos = typeof x.change === 'number' ? x.change >= 0 : false;
+      const isPos = typeof x.change_percent === 'number' ? x.change_percent >= 0
+                  : (typeof x.change === 'number' ? x.change >= 0 : false);
       const delta = (typeof x.change_percent === 'number')
         ? `${isPos ? '▲' : '▼'} ${Math.abs(x.change_percent).toFixed(2)}%`
         : (typeof x.change === 'number')
@@ -49,7 +40,7 @@
           <div class="relative flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/20 text-3xl ring-2 ring-white/20">
-                ${x.emoji || x.symbol || '¤'}
+                ${x.emoji || x.symbol || '¤'}   <!-- флаг/символ -->
               </div>
               <div class="min-w-0">
                 <div class="text-xs uppercase tracking-widest text-white/80">${x.code}</div>
@@ -69,17 +60,27 @@
     }).join('');
   };
 
-  const search = async (q) => {
-    const res = await fetch(`/api/rates/search?q=${encodeURIComponent(q)}`);
-    if (!res.ok) throw new Error('Не удалось получить курсы');
+  // Получить предложения FIAT
+  const searchFiat = async (text) => {
+    const res = await fetch(`/api/rates/search?q=${encodeURIComponent(text)}`);
+    if (!res.ok) throw new Error('FIAT fetch failed');
+    return res.json();
+  };
+  // Получить предложения CRYPTO
+  const searchCrypto = async (text) => {
+    const res = await fetch(`/api/crypto/search?q=${encodeURIComponent(text)}`);
+    if (!res.ok) throw new Error('CRYPTO fetch failed');
     return res.json();
   };
 
-  const buildSuggestions = (payload) => {
-    const items = (payload && payload.items) || [];
+  const buildSuggestions = (fiat, crypto) => {
+    const f = (fiat?.items || []).map(x => ({...x, _kind:'fiat'}));
+    const c = (crypto?.items || []).map(x => ({...x, _kind:'crypto'}));
+    const items = [...f, ...c].slice(0, 10);
     if (!items.length) { box.classList.add('hidden'); return; }
     box.innerHTML = items.map(x=>`
-      <button type="button" data-code="${x.code}" class="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-slate-800">
+      <button type="button" data-kind="${x._kind}" data-code="${x.code}"
+              class="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-slate-800">
         <span class="text-xl">${x.emoji || x.symbol || '¤'}</span>
         <span class="font-medium">${x.code}</span>
         <span class="text-xs text-slate-400 truncate">${x.name || ''}</span>
@@ -88,11 +89,13 @@
     box.classList.remove('hidden');
     box.querySelectorAll('button').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
-        q.value = btn.dataset.code;
+        const kind = btn.dataset.kind;
+        const code = btn.dataset.code;
+        q.value = code;
         box.classList.add('hidden');
         try {
-          const data = await search(btn.dataset.code);
-          render(data);
+          const payload = kind === 'crypto' ? await searchCrypto(code) : await searchFiat(code);
+          render(payload);
         } catch(e){ alert(e.message || e); }
       });
     });
@@ -101,17 +104,16 @@
   q.addEventListener('input', ()=>{
     clearTimeout(debounce);
     const text = q.value.trim();
-    if (!text) { box.classList.add('hidden'); list.innerHTML=''; empty.classList.remove('hidden'); meta.textContent=''; return; }
+    if (!text) { box.classList.add('hidden'); list.innerHTML=''; meta.textContent=''; return; }
     debounce = setTimeout(async ()=>{
       try {
-        const data = await search(text);
-        buildSuggestions(data);
+        const [fiat, crypto] = await Promise.all([searchFiat(text), searchCrypto(text)]);
+        // показываем, что подсказки есть и откуда пришли данные
+        meta.textContent = [fiat?.updated, crypto?.updated].filter(Boolean).join(' • ');
+        buildSuggestions(fiat, crypto);
       } catch(e){ console.error(e); }
     }, 250);
   });
-
-  // первичный пустой экран
-  empty.classList.remove('hidden');
 })();
 </script>
 {% endblock %}
