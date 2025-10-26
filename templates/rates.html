@@ -22,8 +22,34 @@
   const meta = $('#meta');
   let debounce;
 
+  // Фолбэк-таблица знаков и флагов (если бэкенд не вернул)
+  const FALLBACK = {
+    USD: {emoji:'🇺🇸', symbol:'$'},
+    EUR: {emoji:'🇪🇺', symbol:'€'},
+    GBP: {emoji:'🇬🇧', symbol:'£'},
+    CNY: {emoji:'🇨🇳', symbol:'¥'},
+    JPY: {emoji:'🇯🇵', symbol:'¥'},
+    TRY: {emoji:'🇹🇷', symbol:'₺'},
+    KZT: {emoji:'🇰🇿', symbol:'₸'},
+    UAH: {emoji:'🇺🇦', symbol:'₴'},
+    AED: {emoji:'🇦🇪', symbol:'د.إ'},
+    BYN: {emoji:'🇧🇾', symbol:'Br'},
+    AMD: {emoji:'🇦🇲', symbol:'֏'},
+    AZN: {emoji:'🇦🇿', symbol:'₼'},
+    EGP: {emoji:'🇪🇬', symbol:'E£'},
+    CDF: {emoji:'🇨🇩', symbol:'FC'},
+  };
+  const CRYPTO_EMOJI = { BTC:'₿', ETH:'Ξ', LTC:'Ł', XMR:'ɱ', XRP:'✕', TON:'🧿', USDT:'₮', BNB:'Ⓑ' };
+
+  const applyFallbackMeta = x => {
+    const code = (x.code||'').toUpperCase();
+    if (!x.emoji && FALLBACK[code]?.emoji) x.emoji = FALLBACK[code].emoji;
+    if (!x.symbol && (FALLBACK[code]?.symbol || CRYPTO_EMOJI[code])) x.symbol = FALLBACK[code]?.symbol || CRYPTO_EMOJI[code];
+    return x;
+    };
+
   const render = (payload) => {
-    const items = (payload && payload.items) || [];
+    const items = (payload && payload.items || []).map(applyFallbackMeta);
     meta.textContent = payload && payload.updated ? `Данные обновлены: ${payload.updated}` : '';
     list.innerHTML = items.map(x=>{
       const isPos = typeof x.change_percent === 'number' ? x.change_percent >= 0
@@ -40,7 +66,7 @@
           <div class="relative flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/20 text-3xl ring-2 ring-white/20">
-                ${x.emoji || x.symbol || '¤'}   <!-- флаг/символ -->
+                ${x.emoji || x.symbol || '¤'}
               </div>
               <div class="min-w-0">
                 <div class="text-xs uppercase tracking-widest text-white/80">${x.code}</div>
@@ -60,27 +86,25 @@
     }).join('');
   };
 
-  // Получить предложения FIAT
+  // API
   const searchFiat = async (text) => {
-    const res = await fetch(`/api/rates/search?q=${encodeURIComponent(text)}`);
-    if (!res.ok) throw new Error('FIAT fetch failed');
-    return res.json();
+    try{
+      const res = await fetch(`/api/rates/search?q=${encodeURIComponent(text)}`);
+      if (!res.ok) throw 0; return await res.json();
+    }catch{ return {updated:'', items:[]}; }
   };
-  // Получить предложения CRYPTO
   const searchCrypto = async (text) => {
-    const res = await fetch(`/api/crypto/search?q=${encodeURIComponent(text)}`);
-    if (!res.ok) throw new Error('CRYPTO fetch failed');
-    return res.json();
+    try{
+      const res = await fetch(`/api/crypto/search?q=${encodeURIComponent(text)}`);
+      if (!res.ok) throw 0; return await res.json();
+    }catch{ return {updated:'', items:[]}; }
   };
 
-  const buildSuggestions = (fiat, crypto) => {
-    const f = (fiat?.items || []).map(x => ({...x, _kind:'fiat'}));
-    const c = (crypto?.items || []).map(x => ({...x, _kind:'crypto'}));
-    const items = [...f, ...c].slice(0, 10);
+  const buildSuggestions = (lists) => {
+    const items = lists.flat().slice(0,10).map(applyFallbackMeta);
     if (!items.length) { box.classList.add('hidden'); return; }
     box.innerHTML = items.map(x=>`
-      <button type="button" data-kind="${x._kind}" data-code="${x.code}"
-              class="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-slate-800">
+      <button type="button" data-code="${x.code}" class="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-slate-800">
         <span class="text-xl">${x.emoji || x.symbol || '¤'}</span>
         <span class="font-medium">${x.code}</span>
         <span class="text-xs text-slate-400 truncate">${x.name || ''}</span>
@@ -89,30 +113,37 @@
     box.classList.remove('hidden');
     box.querySelectorAll('button').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
-        const kind = btn.dataset.kind;
-        const code = btn.dataset.code;
-        q.value = code;
+        q.value = btn.dataset.code;
         box.classList.add('hidden');
-        try {
-          const payload = kind === 'crypto' ? await searchCrypto(code) : await searchFiat(code);
-          render(payload);
-        } catch(e){ alert(e.message || e); }
+        const [fiat, crypto] = await Promise.all([searchFiat(btn.dataset.code), searchCrypto(btn.dataset.code)]);
+        const payload = (fiat.items?.length? fiat : (crypto.items?.length? crypto : {items:[]}));
+        render(payload);
+        meta.textContent = [fiat.updated, crypto.updated].filter(Boolean).join(' • ');
       });
     });
+  };
+
+  const doSearch = async (text)=>{
+    const [fiat, crypto] = await Promise.all([searchFiat(text), searchCrypto(text)]);
+    meta.textContent = [fiat.updated, crypto.updated].filter(Boolean).join(' • ');
+    if (fiat.items?.length || crypto.items?.length) {
+      render(fiat.items?.length ? fiat : crypto);
+      buildSuggestions([fiat.items||[], crypto.items||[]]);
+    } else {
+      list.innerHTML = ""; box.classList.add('hidden');
+    }
   };
 
   q.addEventListener('input', ()=>{
     clearTimeout(debounce);
     const text = q.value.trim();
     if (!text) { box.classList.add('hidden'); list.innerHTML=''; meta.textContent=''; return; }
-    debounce = setTimeout(async ()=>{
-      try {
-        const [fiat, crypto] = await Promise.all([searchFiat(text), searchCrypto(text)]);
-        // показываем, что подсказки есть и откуда пришли данные
-        meta.textContent = [fiat?.updated, crypto?.updated].filter(Boolean).join(' • ');
-        buildSuggestions(fiat, crypto);
-      } catch(e){ console.error(e); }
-    }, 250);
+    debounce = setTimeout(()=>doSearch(text), 250);
+  });
+
+  // По Enter — сразу искать (важно для кода вида "USD")
+  q.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); const text = q.value.trim(); if(text) doSearch(text); }
   });
 })();
 </script>
