@@ -1,10 +1,8 @@
-# app.py — ПОЛНАЯ ВЕРСИЯ
-
 from flask import Flask, render_template, request, jsonify
 from services.weather import get_region_weather, fetch_open_meteo, code_to_icon_desc
 from services.rates import get_cbr_rates
 from services.news import get_headlines
-from services.geo import search_cities  # файл services/geo.py из прошлых шагов
+from services.geo import search_cities  # файл services/geo.py
 
 app = Flask(__name__)
 
@@ -29,12 +27,7 @@ def index():
 @app.route("/rates")
 def rates_page():
     rates, rates_updated = get_cbr_rates(["USD", "EUR", "CNY"])
-    return render_template(
-        "rates.html",
-        title="Курсы ЦБ РФ",
-        rates=rates,
-        rates_updated=rates_updated,
-    )
+    return render_template("rates.html", title="Курсы ЦБ РФ", rates=rates, rates_updated=rates_updated)
 
 @app.route("/news")
 def news_page():
@@ -43,18 +36,12 @@ def news_page():
 
 @app.route("/weather")
 def weather_search_page():
-    # Пустая страница с полем поиска и JS-автодополнением
     return render_template("weather_search.html", title="Поиск по местоположению")
 
-
 @app.route("/weather/7days")
 def weather_weekly_page():
     return render_template("weather_weekly.html", title="Погода на 7 дней")
 
-
-@app.route("/weather/7days")
-def weather_weekly_page():
-    return render_template("weather_weekly.html", title="Погода на 7 дней")
 
 # -----------------------------
 # Внутренние API (JSON)
@@ -63,8 +50,7 @@ def weather_weekly_page():
 @app.get("/api/cities")
 def api_cities():
     """
-    Автодополнение городов.
-    Прокси к Open-Meteo Geocoding API (БЕЗ ключа).
+    Автодополнение городов (Open-Meteo Geocoding API — без ключа).
     Пример: /api/cities?q=санкт
     """
     q = (request.args.get("q") or "").strip()
@@ -84,25 +70,12 @@ def api_weather():
         return jsonify({"error": "lat and lon are required floats"}), 400
 
     data = fetch_open_meteo(
-        lat,
-        lon,
-        hourly=[
-            "temperature_2m",
-            "apparent_temperature",
-            "precipitation",
-            "weather_code",
-            "wind_speed_10m",
-        ],
-        daily=[
-            "temperature_2m_max",
-            "temperature_2m_min",
-            "precipitation_sum",
-            "wind_speed_10m_max",
-            "sunrise",
-            "sunset",
-        ],
+        lat, lon,
+        hourly=["temperature_2m", "apparent_temperature", "precipitation", "weather_code", "wind_speed_10m"],
+        daily=["temperature_2m_max", "temperature_2m_min", "precipitation_sum", "wind_speed_10m_max", "sunrise", "sunset"],
         forecast_days=1,
     )
+
     cur = data.get("current", {}) or {}
     hourly_block = data.get("hourly", {}) or {}
     hourly_times = hourly_block.get("time") or []
@@ -146,11 +119,9 @@ def api_weather():
         "sunset": pick_first(daily, "sunset"),
     }
 
-    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
     code = cur.get("weather_code")
     icon, desc, anim = code_to_icon_desc(int(code) if code is not None else -1)
 
-        main
     return jsonify(
         {
             "current": {
@@ -160,13 +131,10 @@ def api_weather():
                 "wind": cur.get("wind_speed_10m"),
                 "wdir": cur.get("wind_direction_10m"),
                 "time": cur.get("time"),
-    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
                 "code": code,
                 "icon": icon,
                 "desc": desc,
                 "anim": anim,
-                "code": cur.get("weather_code"),
-        main
             },
             "hourly": hourly_points,
             "hourly_units": data.get("hourly_units", {}),
@@ -186,19 +154,11 @@ def api_weather_weekly():
         return jsonify({"error": "lat and lon are required floats"}), 400
 
     data = fetch_open_meteo(
-        lat,
-        lon,
-        daily=[
-            "weather_code",
-            "temperature_2m_max",
-            "temperature_2m_min",
-            "precipitation_sum",
-            "wind_speed_10m_max",
-            "sunrise",
-            "sunset",
-        ],
+        lat, lon,
+        daily=["weather_code", "temperature_2m_max", "temperature_2m_min", "precipitation_sum", "wind_speed_10m_max", "sunrise", "sunset"],
         forecast_days=7,
     )
+
     daily = data.get("daily", {}) or {}
     times = daily.get("time") or []
 
@@ -211,7 +171,6 @@ def api_weather_weekly():
         except IndexError:
             return None
 
-    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
     days = []
     for idx, iso_date in enumerate(times):
         code = pick(daily, "weather_code", idx)
@@ -231,20 +190,6 @@ def api_weather_weekly():
                 "sunset": pick(daily, "sunset", idx),
             }
         )
-    days = [
-        {
-            "time": iso_date,
-            "code": pick(daily, "weather_code", idx),
-            "temp_max": pick(daily, "temperature_2m_max", idx),
-            "temp_min": pick(daily, "temperature_2m_min", idx),
-            "precip_sum": pick(daily, "precipitation_sum", idx),
-            "wind_max": pick(daily, "wind_speed_10m_max", idx),
-            "sunrise": pick(daily, "sunrise", idx),
-            "sunset": pick(daily, "sunset", idx),
-        }
-        for idx, iso_date in enumerate(times)
-    ]
-        main
 
     return jsonify(
         {
@@ -253,7 +198,6 @@ def api_weather_weekly():
             "timezone": data.get("timezone_abbreviation"),
         }
     )
-    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
 
 
 @app.get("/api/rates/search")
@@ -266,12 +210,10 @@ def api_rates_search():
             code, payload = item
             name = (payload.get("name") or "").lower()
             return query in code.lower() or query in name
-
         filtered = [item for item in rates.items() if _match(item)]
     else:
         filtered = list(rates.items())
 
-    # ограничим до 10 результатов, отсортируем по коду
     filtered.sort(key=lambda item: item[0])
     filtered = filtered[:10]
 
@@ -294,11 +236,6 @@ def api_rates_search():
         }
     )
 
-        main
-
-# -----------------------------
-# Тех. проверка
-# -----------------------------
 
 @app.route("/health")
 def health():
@@ -306,5 +243,4 @@ def health():
 
 
 if __name__ == "__main__":
-    # локальный запуск
     app.run(debug=True)
