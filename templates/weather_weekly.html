@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
 <h2 class="text-2xl font-bold mb-6">Погода на 7 дней</h2>
-<h2 class="text-2xl font-bold mb-6">Прогноз на 7 дней</h2>
-        main
 <p class="text-sm text-slate-400 mb-6">Введите город и получите сводку погоды на ближайшие семь дней: температуры, осадки, ветер и время восхода/заката.</p>
+
 <div class="max-w-3xl">
   <div class="relative">
     <input id="city-input" type="text"
@@ -35,46 +33,12 @@ const input = $("#city-input");
 const box = $("#suggestions");
 let debounce;
 
-        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
-const weatherCodeGroups = [
-  { codes: [0], icon: "☀️", desc: "Ясно" },
-  { codes: [1, 2], icon: "🌤️", desc: "Переменная облачность" },
-  { codes: [3], icon: "☁️", desc: "Облачно" },
-  { codes: [45, 48], icon: "🌫️", desc: "Туман" },
-  { codes: [51, 53, 55], icon: "🌦️", desc: "Морось" },
-  { codes: [56, 57], icon: "🌧️", desc: "Ледяная морось" },
-  { codes: [61, 63, 65], icon: "🌧️", desc: "Дождь" },
-  { codes: [66, 67], icon: "🌧️", desc: "Ледяной дождь" },
-  { codes: [71, 73, 75, 77], icon: "❄️", desc: "Снег" },
-  { codes: [80, 81, 82], icon: "🌦️", desc: "Ливни" },
-  { codes: [85, 86], icon: "🌨️", desc: "Снегопад" },
-  { codes: [95, 96, 99], icon: "⛈️", desc: "Гроза" }
-];
-
-const codeToIcon = code => {
-  if (typeof code !== "number") {
-    return { icon: "🌡️", desc: "Прогноз" };
-  }
-  for (const group of weatherCodeGroups) {
-    if (group.codes.includes(code)) {
-      return group;
-    }
-  }
-  return { icon: "🌡️", desc: "Прогноз" };
-};
-
-        main
-const formatNumber = (value, digits = 1) => {
-  return typeof value === "number" && !Number.isNaN(value)
-    ? value.toFixed(digits)
-    : null;
-};
+const formatNumber = (value, digits = 1) =>
+  typeof value === "number" && !Number.isNaN(value) ? value.toFixed(digits) : null;
 
 const formatWithUnit = (value, unit = "", digits = 1) => {
   const num = formatNumber(value, digits);
-  if (num === null) {
-    return "—";
-  }
+  if (num === null) return "—";
   const trimmedUnit = unit ? (unit.startsWith("°") ? unit : ` ${unit}`) : "";
   return `${num}${trimmedUnit}`;
 };
@@ -97,18 +61,12 @@ const formatTime = iso => {
 input.addEventListener("input", () => {
   clearTimeout(debounce);
   const q = input.value.trim();
-  if (!q) {
-    box.classList.add("hidden");
-    return;
-  }
+  if (!q) { box.classList.add("hidden"); return; }
 
   debounce = setTimeout(async () => {
     const r = await fetch(`/api/cities?q=${encodeURIComponent(q)}`);
     const items = await r.json();
-    if (!items.length) {
-      box.classList.add("hidden");
-      return;
-    }
+    if (!items.length) { box.classList.add("hidden"); return; }
     box.innerHTML = items.map(it => `
       <button data-lat="${it.lat}" data-lon="${it.lon}" data-name="${it.name}${it.admin1?', '+it.admin1:''}${it.country?', '+it.country:''}"
         class="w-full text-left px-4 py-2 hover:bg-slate-800">${it.name}
@@ -122,6 +80,7 @@ input.addEventListener("input", () => {
         input.value = btn.dataset.name;
         box.classList.add("hidden");
         const lat = btn.dataset.lat, lon = btn.dataset.lon;
+
         const res = await fetch(`/api/weather/weekly?lat=${lat}&lon=${lon}`);
         const w = await res.json();
         if (w.error) {
@@ -131,6 +90,7 @@ input.addEventListener("input", () => {
         }
         const units = w.units || {};
         const days = Array.isArray(w.days) ? w.days : [];
+
         $("#result").classList.remove("hidden");
         $("#res-title").textContent = btn.dataset.name;
         $("#res-timezone").textContent = w.timezone ? `Часовой пояс: ${w.timezone}` : "";
@@ -138,18 +98,18 @@ input.addEventListener("input", () => {
 
         const grid = $("#days-grid");
         const empty = $("#days-empty");
+
         if (!days.length) {
           grid.innerHTML = "";
           empty.classList.remove("hidden");
           return;
         }
         empty.classList.add("hidden");
+
         const windUnit = units.wind_speed_10m_max || "м/с";
         const windDigits = windUnit === "м/с" ? 1 : 0;
+
         grid.innerHTML = days.map(day => {
-        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
-          const iconData = codeToIcon(day.code);
-        main
           const dateLabel = formatDate(day.time);
           const max = formatWithUnit(day.temp_max, units.temperature_2m_max || "°C");
           const min = formatWithUnit(day.temp_min, units.temperature_2m_min || "°C");
@@ -157,19 +117,17 @@ input.addEventListener("input", () => {
           const wind = formatWithUnit(day.wind_max, windUnit, windDigits);
           const sunrise = formatTime(day.sunrise);
           const sunset = formatTime(day.sunset);
+          const icon = day.icon || "☁️";
+          const desc = day.desc || "";
+          const anim = day.anim || "calm";
           return `
             <article class="flex flex-col gap-4 rounded-2xl bg-slate-900/70 p-5 ring-1 ring-white/5">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <div class="text-sm uppercase tracking-wide text-slate-400">${dateLabel}</div>
-        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
-                  <div class="text-sm text-slate-400">${day.desc || ''}</div>
+                  <div class="text-sm text-slate-400">${desc}</div>
                 </div>
-                <div class="text-3xl weather-icon ${day.anim || 'calm'}" aria-hidden="true">${day.icon || '☁️'}</div>
-                  <div class="text-sm text-slate-400">${iconData.desc}</div>
-                </div>
-                <div class="text-3xl">${iconData.icon}</div>
-        main
+                <div class="text-3xl weather-icon ${anim}" aria-hidden="true">${icon}</div>
               </div>
               <div class="grid grid-cols-2 gap-3 text-sm">
                 <div class="rounded-xl bg-slate-800/60 p-3">
