@@ -7,23 +7,8 @@ import requests  # <— для крипто-API
 
 app = Flask(__name__)
 
-# Фолбэк для фиатных валют: флаг и символ, если источник их не прислал
-FIAT_META = {
-    "USD": {"emoji": "🇺🇸", "symbol": "$"},
-    "EUR": {"emoji": "🇪🇺", "symbol": "€"},
-    "GBP": {"emoji": "🇬🇧", "symbol": "£"},
-    "CNY": {"emoji": "🇨🇳", "symbol": "¥"},
-    "JPY": {"emoji": "🇯🇵", "symbol": "¥"},
-    "TRY": {"emoji": "🇹🇷", "symbol": "₺"},
-    "KZT": {"emoji": "🇰🇿", "symbol": "₸"},
-    "UAH": {"emoji": "🇺🇦", "symbol": "₴"},
-    "AED": {"emoji": "🇦🇪", "symbol": "د.إ"},
-    "BYN": {"emoji": "🇧🇾", "symbol": "Br"},
-    "AMD": {"emoji": "🇦🇲", "symbol": "֏"},
-    "AZN": {"emoji": "🇦🇿", "symbol": "₼"},
-    "EGP": {"emoji": "🇪🇬", "symbol": "E£"},
-    "CDF": {"emoji": "🇨🇩", "symbol": "FC"},
-}
+# Фолбэк для фиатных валют: флаг и символ
+FIAT_META = {"USD":{"emoji":"🇺🇸","symbol":"$"},"EUR":{"emoji":"🇪🇺","symbol":"€"},"GBP":{"emoji":"🇬🇧","symbol":"£"},"CNY":{"emoji":"🇨🇳","symbol":"¥"},"JPY":{"emoji":"🇯🇵","symbol":"¥"},"TRY":{"emoji":"🇹🇷","symbol":"₺"},"KZT":{"emoji":"🇰🇿","symbol":"₸"},"UAH":{"emoji":"🇺🇦","symbol":"₴"},"AED":{"emoji":"🇦🇪","symbol":"د.إ"},"BYN":{"emoji":"🇧🇾","symbol":"Br"},"AMD":{"emoji":"🇦🇲","symbol":"֏"},"AZN":{"emoji":"🇦🇿","symbol":"₼"},"EGP":{"emoji":"🇪🇬","symbol":"E£"},"CDF":{"emoji":"🇨🇩","symbol":"FC"}}
 
 
 # -----------------------------
@@ -230,19 +215,83 @@ _CRYPTO_EMOJI = {
 def api_crypto_search():
     q = (request.args.get("q") or "").strip()
     if not q:
-        return jsonify({"updated": "", "items": ["items": [
-    (lambda code, payload: {
-        "code": code,
-        "name": payload.get("name"),
-        "value": payload.get("value"),
-        "symbol": payload.get("symbol") or FIAT_META.get(code, {}).get("symbol"),
-        "emoji": payload.get("emoji") or FIAT_META.get(code, {}).get("emoji"),
-        "accent": payload.get("accent"),
-        "change": payload.get("change"),
-        "change_percent": payload.get("change_percent"),
-    })(code, payload)
-    for code, payload in filtered
-],],
+        return jsonify({"updated": "", "items": []})
+
+    try:
+        # 1) найдем подходящие монеты
+        s = requests.get(f"{CG_BASE}/search", params={"query": q}, timeout=12)
+        s.raise_for_status()
+        coins = (s.json() or {}).get("coins", [])[:8]
+        if not coins:
+            return jsonify({"updated": "", "items": []})
+
+        ids = ",".join([c["id"] for c in coins])
+        # 2) цены и 24h динамика в RUB
+        m = requests.get(
+            f"{CG_BASE}/coins/markets",
+            params={"vs_currency": "rub", "ids": ids, "price_change_percentage": "24h", "per_page": 8, "page": 1, "sparkline": "false"},
+            timeout=12,
+        )
+        m.raise_for_status()
+        markets = m.json() or []
+
+        items = []
+        for it in markets:
+            code = (it.get("symbol") or "").upper()
+            name = it.get("name") or ""
+            price = it.get("current_price")
+            change_pct = it.get("price_change_percentage_24h")
+            # аккуратные поля под существующий рендер
+            key = (name or code).lower()
+            emoji = _CRYPTO_EMOJI.get(key) or _CRYPTO_EMOJI.get((code or "").lower()) or "¤"
+            items.append({
+                "code": code,
+                "name": name,
+                "value": price,
+                "symbol": "₽",
+                "emoji": emoji,
+                "accent": "from-emerald-700/40 to-cyan-700/30",
+                "change": None,
+                "change_percent": change_pct,
+            })
+        return jsonify({"updated": "CoinGecko • 24h", "items": items})
+    except Exception as e:
+        return jsonify({"updated": "", "items": [], "error": str(e)}), 502
+
+
+@app.get("/api/rates/search")
+def api_rates_search():
+    query = (request.args.get("q") or "").strip().lower()
+    rates, updated = get_cbr_rates(None)
+
+    if query:
+        def _match(item):
+            code, payload = item
+            name = (payload.get("name") or "").lower()
+            return query in code.lower() or query in name
+        filtered = [item for item in rates.items() if _match(item)]
+    else:
+        filtered = list(rates.items())
+
+    filtered.sort(key=lambda item: item[0])
+    filtered = filtered[:10]
+
+    return jsonify(
+        {
+            "updated": updated,
+            "items": [
+                {
+                    "code": code,
+                    "name": payload.get("name"),
+                    "value": payload.get("value"),
+                    "symbol": payload.get("symbol") or FIAT_META.get(code, {}).get("symbol"),
+                    "emoji": payload.get("emoji") or FIAT_META.get(code, {}).get("emoji"),
+                    "accent": payload.get("accent"),
+                    "change": payload.get("change"),
+                    "change_percent": payload.get("change_percent"),
+                }
+                for code, payload in filtered
+            ],
         }
     )
 
