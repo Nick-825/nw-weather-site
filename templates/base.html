@@ -2,110 +2,98 @@
 <html lang="ru" class="h-full">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>{% block title %}Погода • Новости • Курсы валют{% endblock %}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-    // Tailwind CDN (если у тебя уже подключён — оставь свой)
-  </script>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>{% block title %}Погода · Новости · Курсы{% endblock %}</title>
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root { color-scheme: dark; }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#0b1220;color:#e6edf6}
-    .container{max-width:1100px;margin:0 auto;padding:24px}
-    .glass{background:rgba(15,23,42,.6);border:1px solid rgba(255,255,255,.08);border-radius:20px}
-    .btn{display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;text-decoration:none}
-    .btn:hover{background:rgba(255,255,255,.1)}
-    .nav a{padding:8px 12px;border-radius:12px;text-decoration:none;color:#e6edf6;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
-    .nav a:hover{background:rgba(255,255,255,.1)}
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    /* сглаживание шрифтов и тёмная тема */
+    html,body { background:#0b1220; color:#fff; }
+    .container-safe { max-width: 1100px; }
   </style>
-  {% block head %}{% endblock %}
 </head>
-<body class="h-full">
-  <!-- Header -->
-  <header style="position:sticky;top:0;z-index:40;background:rgba(11,18,32,.8);backdrop-filter:saturate(120%) blur(8px);border-bottom:1px solid rgba(255,255,255,.08)">
-    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-      <a href="/" class="btn" style="padding:10px 12px">
-        <span style="font-size:18px">🌤️</span>
-        <strong>Погода • Новости • Курсы</strong>
+<body class="min-h-full">
+  <!-- ШАПКА -->
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-900/80 backdrop-blur">
+    <div class="mx-auto container-safe px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+      <a href="/" class="flex items-center gap-3">
+        <div class="grid h-10 w-10 place-items-center rounded-full bg-yellow-300/90 text-slate-950 font-black">☀️</div>
+        <div class="leading-tight">
+          <div class="text-lg font-bold">Погода • Новости • Курсы валют</div>
+          <div class="text-[11px] text-white/60">railway.app</div>
+        </div>
       </a>
 
-      <!-- Десктоп-навигация -->
-      <nav class="nav" style="display:none;gap:10px" id="nav-desktop">
-        <a href="/">Главная</a>
-        <a href="/rates">Курсы валют</a>
-        <a href="/news">Новости</a>
-        <a href="/weather">Поиск местоположения</a>
-        <a href="/weather/7days">Погода на 7 дней</a>
+      <!-- Десктоп-меню -->
+      <nav class="hidden md:flex items-center gap-2">
+        <a href="/" class="rounded-xl px-3 py-2 hover:bg-white/10">Главная</a>
+        <a href="/rates" class="rounded-xl px-3 py-2 hover:bg-white/10">Курсы валют</a>
+        <a href="/news" class="rounded-xl px-3 py-2 hover:bg-white/10">Новости</a>
+        <a href="/weather" class="rounded-xl px-3 py-2 hover:bg-white/10">Поиск местоположения</a>
+        <a href="/weather/7days" class="rounded-xl px-3 py-2 hover:bg-white/10">Погода на 7 дней</a>
       </nav>
 
       <!-- Кнопка мобильного меню -->
-      <button id="mobile-menu-button" class="btn" aria-expanded="false" aria-controls="mobile-menu" style="display:inline-flex">
+      <button id="mobile-menu-button"
+              class="md:hidden inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"
+              aria-expanded="false" aria-controls="mobile-menu">
         <span class="sr-only">Открыть меню</span>
-        <svg id="icon-menu" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        <svg id="icon-close" class="sr-only" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg id="icon-menu" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg id="icon-close" xmlns="http://www.w3.org/2000/svg" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
+    </div>
+
+    <!-- Мобильный дроуэр -->
+    <div id="mobile-menu" class="md:hidden hidden fixed inset-0 z-50">
+      <div id="mobile-backdrop" class="absolute inset-0 bg-black/50"></div>
+      <nav class="absolute right-0 top-0 h-full w-[85%] max-w-xs bg-slate-950 border-l border-white/10 p-4 flex flex-col gap-2">
+        <a href="/" class="rounded-xl bg-white/5 px-4 py-3 transition hover:bg-white/10">Главная</a>
+        <a href="/rates" class="rounded-xl bg-white/5 px-4 py-3 transition hover:bg-white/10">Курсы валют</a>
+        <a href="/news" class="rounded-xl bg-white/5 px-4 py-3 transition hover:bg-white/10">Новости</a>
+        <a href="/weather" class="rounded-xl bg-white/5 px-4 py-3 transition hover:bg-white/10">Поиск местоположения</a>
+        <a href="/weather/7days" class="rounded-xl bg-white/5 px-4 py-3 transition hover:bg-white/10">Погода на 7 дней</a>
+      </nav>
     </div>
   </header>
 
-  <!-- Мобильный дроуэр -->
-  <div id="mobile-menu" class="sr-only">
-    <div id="mobile-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.5)"></div>
-    <nav style="position:fixed;right:0;top:0;height:100vh;width:min(85%,340px);background:#0b1220;border-left:1px solid rgba(255,255,255,.12);padding:16px;display:flex;flex-direction:column;gap:8px">
-      <a class="btn" href="/">Главная</a>
-      <a class="btn" href="/rates">Курсы валют</a>
-      <a class="btn" href="/news">Новости</a>
-      <a class="btn" href="/weather">Поиск местоположения</a>
-      <a class="btn" href="/weather/7days">Погода на 7 дней</a>
-    </nav>
-  </div>
-
-  <main class="container" style="padding-top:20px;padding-bottom:40px;">
+  <!-- КОНТЕНТ -->
+  <main class="mx-auto container-safe px-4 sm:px-6 py-6">
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="container" style="padding-bottom:60px;color:#9fb0c3">
-    © 2025 <a href="https://t.me/weatherinversesSPb" style="color:#9ad2ff;text-decoration:none">Васька Невский</a>
+  <!-- ПОДВАЛ -->
+  <footer class="border-t border-white/10">
+    <div class="mx-auto container-safe px-4 sm:px-6 py-6 text-sm text-white/60">
+      © 2025 <a href="https://t.me/weatherinversesSPb" class="underline hover:text-white">Погода от Васька Невский</a>
+    </div>
   </footer>
 
+  <!-- Скрипт дроуэра -->
   <script>
-    // Простейшее условное отображение десктоп-меню
-    (function(){
-      const mql = window.matchMedia('(min-width: 900px)');
-      const navDesktop = document.getElementById('nav-desktop');
-      const toggleVis = () => navDesktop.style.display = mql.matches ? 'flex' : 'none';
-      toggleVis(); mql.addEventListener('change', toggleVis);
-    })();
+  (function(){
+    const btn = document.getElementById('mobile-menu-button');
+    const menu = document.getElementById('mobile-menu');
+    const backdrop = document.getElementById('mobile-backdrop');
+    const iconMenu = document.getElementById('icon-menu');
+    const iconClose = document.getElementById('icon-close');
 
-    // Дроуэр
-    (function(){
-      const btn = document.getElementById('mobile-menu-button');
-      const menu = document.getElementById('mobile-menu');
-      const backdrop = document.getElementById('mobile-backdrop');
-      const iMenu = document.getElementById('icon-menu');
-      const iClose = document.getElementById('icon-close');
+    const open = () => {
+      menu.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      iconMenu.classList.add('hidden'); iconClose.classList.remove('hidden');
+      btn?.setAttribute('aria-expanded','true');
+    };
+    const close = () => {
+      menu.classList.add('hidden');
+      document.body.style.overflow = '';
+      iconMenu.classList.remove('hidden'); iconClose.classList.add('hidden');
+      btn?.setAttribute('aria-expanded','false');
+    };
 
-      const show = () => {
-        menu.classList.remove('sr-only');
-        iMenu.classList.add('sr-only'); iClose.classList.remove('sr-only');
-        btn.setAttribute('aria-expanded','true');
-        document.body.style.overflow='hidden';
-      };
-      const hide = () => {
-        menu.classList.add('sr-only');
-        iMenu.classList.remove('sr-only'); iClose.classList.add('sr-only');
-        btn.setAttribute('aria-expanded','false');
-        document.body.style.overflow='';
-      };
-      btn.addEventListener('click', ()=> menu.classList.contains('sr-only') ? show() : hide());
-      backdrop.addEventListener('click', hide);
-      menu.querySelectorAll('a').forEach(a=> a.addEventListener('click', hide));
-    })();
+    btn?.addEventListener('click', ()=> menu.classList.contains('hidden') ? open() : close());
+    backdrop?.addEventListener('click', close);
+    menu?.querySelectorAll('a').forEach(a=> a.addEventListener('click', close));
+  })();
   </script>
-
-  {% block scripts %}{% endblock %}
 </body>
 </html>
