@@ -3,18 +3,19 @@ from services.weather import get_region_weather, fetch_open_meteo, code_to_icon_
 from services.rates import get_cbr_rates
 from services.news import get_headlines
 from services.geo import search_cities  # файл services/geo.py
+import requests  # <— для крипто-API
 
 app = Flask(__name__)
 
 # -----------------------------
-# Страницы (многостраничный сайт)
+# Страницы
 # -----------------------------
 
 @app.route("/")
 def index():
     weather = get_region_weather()
     rates, rates_updated = get_cbr_rates(["USD", "EUR", "CNY"])
-    headlines = get_headlines(limit=8)
+    headlines = get_headlines(limit=10)  # было 8 → стало 10
     return render_template(
         "index.html",
         title="Погода, Новости и Курсы валют",
@@ -26,8 +27,8 @@ def index():
 
 @app.route("/rates")
 def rates_page():
-    rates, rates_updated = get_cbr_rates(["USD", "EUR", "CNY"])
-    return render_template("rates.html", title="Курсы ЦБ РФ", rates=rates, rates_updated=rates_updated)
+    # на самой странице «Курсы валют» — только поиск (карточки основных курсов НЕ показываем)
+    return render_template("rates.html", title="Курсы ЦБ РФ")
 
 @app.route("/news")
 def news_page():
@@ -49,20 +50,12 @@ def weather_weekly_page():
 
 @app.get("/api/cities")
 def api_cities():
-    """
-    Автодополнение городов (Open-Meteo Geocoding API — без ключа).
-    Пример: /api/cities?q=санкт
-    """
     q = (request.args.get("q") or "").strip()
     results = search_cities(q, count=7, lang="ru")
     return jsonify(results)
 
 @app.get("/api/weather")
 def api_weather():
-    """
-    Прогноз на текущие сутки по координатам.
-    Пример: /api/weather?lat=59.9&lon=30.3
-    """
     try:
         lat = float(request.args["lat"])
         lon = float(request.args["lon"])
@@ -146,7 +139,6 @@ def api_weather():
 
 @app.get("/api/weather/weekly")
 def api_weather_weekly():
-    """Недельный прогноз по координатам."""
     try:
         lat = float(request.args["lat"])
         lon = float(request.args["lon"])
@@ -199,6 +191,69 @@ def api_weather_weekly():
         }
     )
 
+# ------- Новый API: поиск курсов криптовалют (CoinGecko, в RUB) -------
+# /api/crypto/search?q=btc
+# Возвращает структуру items, совместимую с /api/rates/search (code/name/value/symbol/emoji/...)
+CG_BASE = "https://api.coingecko.com/api/v3"
+
+_CRYPTO_EMOJI = {
+    "bitcoin": "₿", "btc": "₿",
+    "ethereum": "Ξ", "eth": "Ξ",
+    "litecoin": "Ł", "ltc": "Ł",
+    "monero": "ɱ", "xmr": "ɱ",
+    "ripple": "✕", "xrp": "✕",
+    "toncoin": "🧿", "ton": "🧿",
+    "tether": "₮", "usdt": "₮",
+    "binancecoin": "Ⓑ", "bnb": "Ⓑ",
+}
+
+@app.get("/api/crypto/search")
+def api_crypto_search():
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({"updated": "", "items": []})
+
+    try:
+        # 1) найдем подходящие монеты
+        s = requests.get(f"{CG_BASE}/search", params={"query": q}, timeout=12)
+        s.raise_for_status()
+        coins = (s.json() or {}).get("coins", [])[:8]
+        if not coins:
+            return jsonify({"updated": "", "items": []})
+
+        ids = ",".join([c["id"] for c in coins])
+        # 2) цены и 24h динамика в RUB
+        m = requests.get(
+            f"{CG_BASE}/coins/markets",
+            params={"vs_currency": "rub", "ids": ids, "price_change_percentage": "24h", "per_page": 8, "page": 1, "sparkline": "false"},
+            timeout=12,
+        )
+        m.raise_for_status()
+        markets = m.json() or []
+
+        items = []
+        for it in markets:
+            code = (it.get("symbol") or "").upper()
+            name = it.get("name") or ""
+            price = it.get("current_price")
+            change_pct = it.get("price_change_percentage_24h")
+            # аккуратные поля под существующий рендер
+            key = (name or code).lower()
+            emoji = _CRYPTO_EMOJI.get(key) or _CRYPTO_EMOJI.get((code or "").lower()) or "¤"
+            items.append({
+                "code": code,
+                "name": name,
+                "value": price,
+                "symbol": "₽",
+                "emoji": emoji,
+                "accent": "from-emerald-700/40 to-cyan-700/30",
+                "change": None,
+                "change_percent": change_pct,
+            })
+        return jsonify({"updated": "CoinGecko • 24h", "items": items})
+    except Exception as e:
+        return jsonify({"updated": "", "items": [], "error": str(e)}), 502
+
 
 @app.get("/api/rates/search")
 def api_rates_search():
@@ -225,8 +280,8 @@ def api_rates_search():
                     "code": code,
                     "name": payload.get("name"),
                     "value": payload.get("value"),
-                    "symbol": payload.get("symbol"),
-                    "emoji": payload.get("emoji"),
+                    "symbol": payload.get("symbol"),   # знак валюты
+                    "emoji": payload.get("emoji"),     # флаг страны
                     "accent": payload.get("accent"),
                     "change": payload.get("change"),
                     "change_percent": payload.get("change_percent"),
