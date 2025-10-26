@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-6">Поиск погоды по городу</h2>
+<h2 class="text-2xl font-bold mb-6">Поиск по местоположению</h2>
 
 <div class="max-w-xl">
   <div class="relative">
@@ -13,13 +13,24 @@
 
   <div id="result" class="mt-6 hidden space-y-4">
     <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5 space-y-4">
+        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
+        main
         <div>
           <div class="text-lg font-semibold" id="res-title"></div>
           <div class="text-xs text-slate-400" id="res-time"></div>
         </div>
+        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
+        <div class="flex items-center gap-3 text-4xl font-bold">
+          <span id="res-icon" class="weather-icon calm text-4xl" aria-hidden="true">☁️</span>
+          <span id="res-temp"></span>
+        </div>
+      </div>
+      <div class="text-sm text-slate-400" id="res-desc"></div>
         <div class="text-4xl font-bold" id="res-temp"></div>
       </div>
+        main
       <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
         <div class="bg-slate-800/60 rounded-xl p-3">
           <div class="text-xs text-slate-400">Ощущается</div>
@@ -147,6 +158,12 @@ input.addEventListener("input", ()=>{
         $("#res-title").textContent = btn.dataset.name;
         $("#res-time").textContent = current.time ? `Обновлено: ${new Date(current.time).toLocaleString("ru-RU")}` : "";
         $("#res-temp").textContent = formatWithUnit(current.temp, "°C");
+        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
+        $("#res-desc").textContent = current.desc || "";
+        const iconEl = $("#res-icon");
+        iconEl.textContent = current.icon || "☁️";
+        iconEl.className = `weather-icon ${current.anim || 'calm'} text-4xl`;
+        main
         $("#res-feels").textContent = formatWithUnit(current.feels, "°C");
         $("#res-precip").textContent = formatWithUnit(current.precip, hourlyUnits.precipitation || "мм");
         const windNowUnit = hourlyUnits.wind_speed_10m || "м/с";

@@ -1,7 +1,7 @@
 # app.py — ПОЛНАЯ ВЕРСИЯ
 
 from flask import Flask, render_template, request, jsonify
-from services.weather import get_region_weather, fetch_open_meteo
+from services.weather import get_region_weather, fetch_open_meteo, code_to_icon_desc
 from services.rates import get_cbr_rates
 from services.news import get_headlines
 from services.geo import search_cities  # файл services/geo.py из прошлых шагов
@@ -19,7 +19,7 @@ def index():
     headlines = get_headlines(limit=8)
     return render_template(
         "index.html",
-        title="Северо-Запад: погода • новости • курсы",
+        title="Погода, Новости и Курсы валют",
         weather=weather,
         rates=rates,
         rates_updated=rates_updated,
@@ -44,7 +44,12 @@ def news_page():
 @app.route("/weather")
 def weather_search_page():
     # Пустая страница с полем поиска и JS-автодополнением
-    return render_template("weather_search.html", title="Поиск погоды")
+    return render_template("weather_search.html", title="Поиск по местоположению")
+
+
+@app.route("/weather/7days")
+def weather_weekly_page():
+    return render_template("weather_weekly.html", title="Погода на 7 дней")
 
 
 @app.route("/weather/7days")
@@ -141,6 +146,11 @@ def api_weather():
         "sunset": pick_first(daily, "sunset"),
     }
 
+    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
+    code = cur.get("weather_code")
+    icon, desc, anim = code_to_icon_desc(int(code) if code is not None else -1)
+
+        main
     return jsonify(
         {
             "current": {
@@ -150,7 +160,13 @@ def api_weather():
                 "wind": cur.get("wind_speed_10m"),
                 "wdir": cur.get("wind_direction_10m"),
                 "time": cur.get("time"),
+    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
+                "code": code,
+                "icon": icon,
+                "desc": desc,
+                "anim": anim,
                 "code": cur.get("weather_code"),
+        main
             },
             "hourly": hourly_points,
             "hourly_units": data.get("hourly_units", {}),
@@ -195,6 +211,26 @@ def api_weather_weekly():
         except IndexError:
             return None
 
+    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
+    days = []
+    for idx, iso_date in enumerate(times):
+        code = pick(daily, "weather_code", idx)
+        icon, desc, anim = code_to_icon_desc(int(code) if code is not None else -1)
+        days.append(
+            {
+                "time": iso_date,
+                "code": code,
+                "icon": icon,
+                "desc": desc,
+                "anim": anim,
+                "temp_max": pick(daily, "temperature_2m_max", idx),
+                "temp_min": pick(daily, "temperature_2m_min", idx),
+                "precip_sum": pick(daily, "precipitation_sum", idx),
+                "wind_max": pick(daily, "wind_speed_10m_max", idx),
+                "sunrise": pick(daily, "sunrise", idx),
+                "sunset": pick(daily, "sunset", idx),
+            }
+        )
     days = [
         {
             "time": iso_date,
@@ -208,6 +244,7 @@ def api_weather_weekly():
         }
         for idx, iso_date in enumerate(times)
     ]
+        main
 
     return jsonify(
         {
@@ -216,6 +253,48 @@ def api_weather_weekly():
             "timezone": data.get("timezone_abbreviation"),
         }
     )
+    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
+
+
+@app.get("/api/rates/search")
+def api_rates_search():
+    query = (request.args.get("q") or "").strip().lower()
+    rates, updated = get_cbr_rates(None)
+
+    if query:
+        def _match(item):
+            code, payload = item
+            name = (payload.get("name") or "").lower()
+            return query in code.lower() or query in name
+
+        filtered = [item for item in rates.items() if _match(item)]
+    else:
+        filtered = list(rates.items())
+
+    # ограничим до 10 результатов, отсортируем по коду
+    filtered.sort(key=lambda item: item[0])
+    filtered = filtered[:10]
+
+    return jsonify(
+        {
+            "updated": updated,
+            "items": [
+                {
+                    "code": code,
+                    "name": payload.get("name"),
+                    "value": payload.get("value"),
+                    "symbol": payload.get("symbol"),
+                    "emoji": payload.get("emoji"),
+                    "accent": payload.get("accent"),
+                    "change": payload.get("change"),
+                    "change_percent": payload.get("change_percent"),
+                }
+                for code, payload in filtered
+            ],
+        }
+    )
+
+        main
 
 # -----------------------------
 # Тех. проверка

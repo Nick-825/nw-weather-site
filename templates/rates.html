@@ -12,6 +12,20 @@
     {% endif %}
   </div>
 
+  <div class="rounded-3xl bg-slate-900/80 p-5 ring-1 ring-white/10 shadow-lg">
+    <label for="rates-search" class="text-sm font-semibold text-slate-200">Поиск других валют</label>
+    <p class="mt-1 text-xs text-slate-400">Введите код или название валюты, чтобы узнать курс и динамику.</p>
+    <div class="relative mt-3">
+      <input id="rates-search" type="text" placeholder="Например, GBP или фунт"
+             class="w-full rounded-2xl bg-slate-950/70 px-4 py-3 text-sm ring-1 ring-white/10 outline-none focus:ring-cyan-500"
+             autocomplete="off">
+      <div id="rates-search-loading" class="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 text-xs text-cyan-200">Загрузка…</div>
+    </div>
+    <div id="rates-search-placeholder" class="mt-4 text-sm text-slate-400">По умолчанию показаны основные валюты, но вы можете найти любую доступную в ЦБ РФ.</div>
+    <div id="rates-search-empty" class="mt-4 hidden rounded-2xl border border-dashed border-white/10 p-4 text-sm text-slate-400">Ничего не найдено. Попробуйте изменить запрос.</div>
+    <div id="rates-search-results" class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"></div>
+  </div>
+
   <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
     {% for code, r in rates.items() %}
     <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br {{ r.accent }} p-5 shadow-xl ring-1 ring-white/10">
@@ -53,5 +67,89 @@
     {% endfor %}
   </div>
 </div>
+
+<script>
+  (function(){
+    const input = document.getElementById('rates-search');
+    const results = document.getElementById('rates-search-results');
+    const placeholder = document.getElementById('rates-search-placeholder');
+    const empty = document.getElementById('rates-search-empty');
+    const loading = document.getElementById('rates-search-loading');
+    let debounce;
+
+    const formatValue = value => {
+      if (typeof value !== 'number' || Number.isNaN(value)) {
+        return '—';
+      }
+      return value.toFixed(4);
+    };
+
+    const formatChange = (change, changePct) => {
+      if (typeof change !== 'number' || Number.isNaN(change)) {
+        return '';
+      }
+      const direction = change >= 0 ? '▲' : '▼';
+      const abs = Math.abs(change);
+      const pct = (typeof changePct === 'number' && !Number.isNaN(changePct)) ? `${Math.abs(changePct).toFixed(2)}%` : null;
+      return `${direction} ${abs.toFixed(4)}${pct ? ` • ${pct}` : ''}`;
+    };
+
+    const renderResults = items => {
+      if (!items.length) {
+        results.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      empty.textContent = 'Ничего не найдено. Попробуйте изменить запрос.';
+      results.innerHTML = items.map(item => `
+        <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br ${item.accent || 'from-slate-800/80 to-slate-900/80'} p-4 text-sm ring-1 ring-white/10">
+          <div class="absolute -right-12 -top-16 h-28 w-28 rounded-full bg-white/10 blur-3xl"></div>
+          <div class="relative flex flex-col gap-4">
+            <div class="flex items-center gap-3">
+              <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-black/20 text-2xl ring-2 ring-white/20">${item.emoji || item.symbol || '¤'}</div>
+              <div>
+                <div class="text-xs uppercase tracking-wide text-white/80">${item.code}</div>
+                <div class="text-sm font-semibold text-white/90">${item.name || ''}</div>
+              </div>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div class="text-2xl font-bold text-white">${item.symbol || item.code} ${formatValue(item.value)}</div>
+              <div class="text-xs text-white/80">${formatChange(item.change, item.change_percent)}</div>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    };
+
+    const searchRates = async query => {
+      loading.classList.remove('hidden');
+      try {
+        const res = await fetch(`/api/rates/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        renderResults(data.items || []);
+      } catch (err) {
+        empty.classList.remove('hidden');
+        empty.textContent = 'Не удалось выполнить поиск. Попробуйте позже.';
+        results.innerHTML = '';
+      } finally {
+        loading.classList.add('hidden');
+      }
+    };
+
+    input?.addEventListener('input', () => {
+      clearTimeout(debounce);
+      const q = input.value.trim();
+      if (!q) {
+        results.innerHTML = '';
+        empty.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        return;
+      }
+      placeholder.classList.add('hidden');
+      debounce = setTimeout(() => searchRates(q), 250);
+    });
+  })();
+</script>
 
 {% endblock %}

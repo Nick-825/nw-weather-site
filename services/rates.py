@@ -41,7 +41,7 @@ def _format_timestamp(raw: str) -> Optional[str]:
 
 
 @ttl_cache(600)
-def get_cbr_rates(codes=("USD","EUR","CNY")):
+def _get_all_cbr_rates():
     r = requests.get(CBR_DAILY, timeout=10)
     r.raise_for_status()
     payload = r.json()
@@ -51,27 +51,41 @@ def get_cbr_rates(codes=("USD","EUR","CNY")):
         or _format_timestamp(payload.get("Timestamp"))
         or ""
     )
-
     res = {}
-    for code in codes:
-        v = data.get(code)
-        if v:
-            value = v.get("Value")
-            prev = v.get("Previous")
-            change = value - prev if (value is not None and prev is not None) else None
-            change_pct = (change / prev * 100) if (change is not None and prev) else None
-            meta = CURRENCY_META.get(code, {})
 
-            res[code] = {
-                "name": v.get("Name"),
-                "value": value,
-                "prev": prev,
-                "change": change,
-                "change_percent": change_pct,
-                "symbol": meta.get("symbol", ""),
-                "emoji": meta.get("emoji"),
-                "accent": meta.get("accent", "from-slate-800/80 to-slate-900/80"),
-                "updated_at": updated_label,
-            }
+    for code, v in data.items():
+        if not v:
+            continue
+        value = v.get("Value")
+        prev = v.get("Previous")
+        change = value - prev if (value is not None and prev is not None) else None
+        change_pct = (change / prev * 100) if (change is not None and prev) else None
+        meta = CURRENCY_META.get(code, {})
+
+        res[code] = {
+            "name": v.get("Name"),
+            "value": value,
+            "prev": prev,
+            "change": change,
+            "change_percent": change_pct,
+            "symbol": meta.get("symbol", ""),
+            "emoji": meta.get("emoji"),
+            "accent": meta.get("accent", "from-slate-800/80 to-slate-900/80"),
+            "updated_at": updated_label,
+        }
 
     return res, updated_label
+
+
+def get_cbr_rates(codes=None):
+    res, updated_label = _get_all_cbr_rates()
+
+    if codes is None:
+        return res, updated_label
+
+    filtered = {}
+    for code in codes:
+        if code in res:
+            filtered[code] = res[code]
+
+    return filtered, updated_label
