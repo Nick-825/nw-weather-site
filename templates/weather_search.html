@@ -13,24 +13,18 @@
 
   <div id="result" class="mt-6 hidden space-y-4">
     <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5 space-y-4">
-        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
-        main
         <div>
           <div class="text-lg font-semibold" id="res-title"></div>
           <div class="text-xs text-slate-400" id="res-time"></div>
         </div>
-        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
-        <div class="flex items-center gap-3 text-4xl font-bold">
+        <div class="flex items-center gap-3">
           <span id="res-icon" class="weather-icon calm text-4xl" aria-hidden="true">☁️</span>
-          <span id="res-temp"></span>
+          <span id="res-temp" class="text-4xl font-bold"></span>
         </div>
       </div>
       <div class="text-sm text-slate-400" id="res-desc"></div>
-        <div class="text-4xl font-bold" id="res-temp"></div>
-      </div>
-        main
+
       <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
         <div class="bg-slate-800/60 rounded-xl p-3">
           <div class="text-xs text-slate-400">Ощущается</div>
@@ -45,6 +39,7 @@
           <div class="font-medium" id="res-wind"></div>
         </div>
       </div>
+
       <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
         <div class="bg-slate-800/60 rounded-xl p-3">
           <div class="text-xs text-slate-400">Макс за сутки</div>
@@ -72,6 +67,7 @@
         </div>
       </div>
     </div>
+
     <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5">
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold">Прогноз по часам</h3>
@@ -89,17 +85,12 @@ const input = $("#city-input");
 const box = $("#suggestions");
 let debounce;
 
-const formatNumber = (value, digits = 1) => {
-  return typeof value === "number" && !Number.isNaN(value)
-    ? value.toFixed(digits)
-    : null;
-};
+const formatNumber = (value, digits = 1) =>
+  typeof value === "number" && !Number.isNaN(value) ? value.toFixed(digits) : null;
 
 const formatWithUnit = (value, unit = "", digits = 1) => {
   const num = formatNumber(value, digits);
-  if (num === null) {
-    return "—";
-  }
+  if (num === null) return "—";
   const trimmedUnit = unit ? (unit.startsWith("°") ? unit : ` ${unit}`) : "";
   return `${num}${trimmedUnit}`;
 };
@@ -141,6 +132,7 @@ input.addEventListener("input", ()=>{
         input.value = btn.dataset.name;
         box.classList.add("hidden");
         const lat = btn.dataset.lat, lon = btn.dataset.lon;
+
         const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
         const w = await res.json();
         if (w.error) {
@@ -148,6 +140,7 @@ input.addEventListener("input", ()=>{
           alert(w.error);
           return;
         }
+
         const current = w.current || {};
         const daily = w.daily || {};
         const hourly = Array.isArray(w.hourly) ? w.hourly : [];
@@ -158,23 +151,19 @@ input.addEventListener("input", ()=>{
         $("#res-title").textContent = btn.dataset.name;
         $("#res-time").textContent = current.time ? `Обновлено: ${new Date(current.time).toLocaleString("ru-RU")}` : "";
         $("#res-temp").textContent = formatWithUnit(current.temp, "°C");
-        codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
         $("#res-desc").textContent = current.desc || "";
         const iconEl = $("#res-icon");
         iconEl.textContent = current.icon || "☁️";
         iconEl.className = `weather-icon ${current.anim || 'calm'} text-4xl`;
-        main
+
         $("#res-feels").textContent = formatWithUnit(current.feels, "°C");
         $("#res-precip").textContent = formatWithUnit(current.precip, hourlyUnits.precipitation || "мм");
+
         const windNowUnit = hourlyUnits.wind_speed_10m || "м/с";
         const windNow = formatWithUnit(current.wind, windNowUnit, windNowUnit === "м/с" ? 1 : 0);
         const hasWind = typeof current.wind === "number" && !Number.isNaN(current.wind);
-        const wdirValue = typeof current.wdir === "number" && !Number.isNaN(current.wdir)
-          ? `${Math.round(current.wdir)}°`
-          : "—";
-        $("#res-wind").textContent = hasWind
-          ? `${windNow}${wdirValue !== "—" ? ` • ${wdirValue}` : ""}`
-          : wdirValue;
+        const wdirValue = typeof current.wdir === "number" && !Number.isNaN(current.wdir) ? `${Math.round(current.wdir)}°` : "—";
+        $("#res-wind").textContent = hasWind ? `${windNow}${wdirValue !== "—" ? ` • ${wdirValue}` : ""}` : wdirValue;
 
         $("#res-max").textContent = formatWithUnit(daily.temp_max, "°C");
         $("#res-min").textContent = formatWithUnit(daily.temp_min, "°C");
