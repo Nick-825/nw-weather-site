@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-6">Поиск погоды по городу</h2>
+<h2 class="text-2xl font-bold mb-6">Поиск по местоположению</h2>
 
 <div class="max-w-xl">
   <div class="relative">
@@ -11,24 +11,67 @@
     <div id="suggestions" class="absolute z-10 mt-2 w-full rounded-xl bg-slate-900 ring-1 ring-white/10 hidden"></div>
   </div>
 
-  <div id="result" class="mt-6 hidden">
-    <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5">
-      <div class="text-lg font-semibold" id="res-title"></div>
-      <div class="text-3xl font-bold mt-2" id="res-temp"></div>
-      <div class="grid grid-cols-3 gap-3 text-sm mt-4">
+  <div id="result" class="mt-6 hidden space-y-4">
+    <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5 space-y-4">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div class="text-lg font-semibold" id="res-title"></div>
+          <div class="text-xs text-slate-400" id="res-time"></div>
+        </div>
+        <div class="flex items-center gap-3 text-4xl font-bold">
+          <span id="res-icon" class="weather-icon calm text-4xl" aria-hidden="true">☁️</span>
+          <span id="res-temp"></span>
+        </div>
+      </div>
+      <div class="text-sm text-slate-400" id="res-desc"></div>
+      <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
         <div class="bg-slate-800/60 rounded-xl p-3">
           <div class="text-xs text-slate-400">Ощущается</div>
           <div class="font-medium" id="res-feels"></div>
         </div>
         <div class="bg-slate-800/60 rounded-xl p-3">
-          <div class="text-xs text-slate-400">Осадки</div>
+          <div class="text-xs text-slate-400">Осадки сейчас</div>
           <div class="font-medium" id="res-precip"></div>
         </div>
         <div class="bg-slate-800/60 rounded-xl p-3">
-          <div class="text-xs text-slate-400">Ветер</div>
+          <div class="text-xs text-slate-400">Ветер сейчас</div>
           <div class="font-medium" id="res-wind"></div>
         </div>
       </div>
+      <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Макс за сутки</div>
+          <div class="font-medium" id="res-max"></div>
+        </div>
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Мин за сутки</div>
+          <div class="font-medium" id="res-min"></div>
+        </div>
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Осадки за сутки</div>
+          <div class="font-medium" id="res-daily-precip"></div>
+        </div>
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Порывы до</div>
+          <div class="font-medium" id="res-daily-wind"></div>
+        </div>
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Восход</div>
+          <div class="font-medium" id="res-sunrise"></div>
+        </div>
+        <div class="bg-slate-800/60 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Закат</div>
+          <div class="font-medium" id="res-sunset"></div>
+        </div>
+      </div>
+    </div>
+    <div class="rounded-2xl bg-slate-900/70 ring-1 ring-white/5 p-5">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-semibold">Прогноз по часам</h3>
+        <div class="text-xs text-slate-400" id="res-daily-date"></div>
+      </div>
+      <div id="hourly-empty" class="mt-4 text-sm text-slate-400 hidden">Нет данных об актуальном почасовом прогнозе.</div>
+      <div id="hourly-cards" class="mt-4 flex gap-3 overflow-x-auto pb-2"></div>
     </div>
   </div>
 </div>
@@ -38,6 +81,36 @@ const $ = s => document.querySelector(s);
 const input = $("#city-input");
 const box = $("#suggestions");
 let debounce;
+
+const formatNumber = (value, digits = 1) => {
+  return typeof value === "number" && !Number.isNaN(value)
+    ? value.toFixed(digits)
+    : null;
+};
+
+const formatWithUnit = (value, unit = "", digits = 1) => {
+  const num = formatNumber(value, digits);
+  if (num === null) {
+    return "—";
+  }
+  const trimmedUnit = unit ? (unit.startsWith("°") ? unit : ` ${unit}`) : "";
+  return `${num}${trimmedUnit}`;
+};
+
+const formatTime = iso => {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+};
+
+const formatDate = iso => {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const raw = date.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+};
 
 input.addEventListener("input", ()=>{
   clearTimeout(debounce);
@@ -63,12 +136,76 @@ input.addEventListener("input", ()=>{
         const lat = btn.dataset.lat, lon = btn.dataset.lon;
         const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
         const w = await res.json();
+        if (w.error) {
+          $("#result").classList.add("hidden");
+          alert(w.error);
+          return;
+        }
+        const current = w.current || {};
+        const daily = w.daily || {};
+        const hourly = Array.isArray(w.hourly) ? w.hourly : [];
+        const hourlyUnits = w.hourly_units || {};
+        const dailyUnits = w.daily_units || {};
+
         $("#result").classList.remove("hidden");
         $("#res-title").textContent = btn.dataset.name;
-        $("#res-temp").textContent = w.temp ? `${w.temp.toFixed(1)}°C` : "—";
-        $("#res-feels").textContent = w.feels ? `${w.feels.toFixed(1)}°C` : "—";
-        $("#res-precip").textContent = w.precip ?? "—";
-        $("#res-wind").textContent = w.wind ?? "—";
+        $("#res-time").textContent = current.time ? `Обновлено: ${new Date(current.time).toLocaleString("ru-RU")}` : "";
+        $("#res-temp").textContent = formatWithUnit(current.temp, "°C");
+        $("#res-desc").textContent = current.desc || "";
+        const iconEl = $("#res-icon");
+        iconEl.textContent = current.icon || "☁️";
+        iconEl.className = `weather-icon ${current.anim || 'calm'} text-4xl`;
+        $("#res-feels").textContent = formatWithUnit(current.feels, "°C");
+        $("#res-precip").textContent = formatWithUnit(current.precip, hourlyUnits.precipitation || "мм");
+        const windNowUnit = hourlyUnits.wind_speed_10m || "м/с";
+        const windNow = formatWithUnit(current.wind, windNowUnit, windNowUnit === "м/с" ? 1 : 0);
+        const hasWind = typeof current.wind === "number" && !Number.isNaN(current.wind);
+        const wdirValue = typeof current.wdir === "number" && !Number.isNaN(current.wdir)
+          ? `${Math.round(current.wdir)}°`
+          : "—";
+        $("#res-wind").textContent = hasWind
+          ? `${windNow}${wdirValue !== "—" ? ` • ${wdirValue}` : ""}`
+          : wdirValue;
+
+        $("#res-max").textContent = formatWithUnit(daily.temp_max, "°C");
+        $("#res-min").textContent = formatWithUnit(daily.temp_min, "°C");
+        $("#res-daily-precip").textContent = formatWithUnit(daily.precip_sum, dailyUnits.precipitation_sum || "мм");
+        const dailyWindUnit = dailyUnits.wind_speed_10m_max || windNowUnit;
+        const dailyWindDigits = dailyWindUnit === "м/с" ? 1 : 0;
+        $("#res-daily-wind").textContent = formatWithUnit(daily.wind_max, dailyWindUnit, dailyWindDigits);
+        $("#res-sunrise").textContent = formatTime(daily.sunrise);
+        $("#res-sunset").textContent = formatTime(daily.sunset);
+        $("#res-daily-date").textContent = formatDate(daily.time);
+
+        const hourlyContainer = $("#hourly-cards");
+        const emptyState = $("#hourly-empty");
+        if (!hourly.length) {
+          hourlyContainer.innerHTML = "";
+          emptyState.classList.remove("hidden");
+        } else {
+          emptyState.classList.add("hidden");
+          const hourlyWindUnit = hourlyUnits.wind_speed_10m || "м/с";
+          const hourlyWindDigits = hourlyWindUnit === "м/с" ? 1 : 0;
+          hourlyContainer.innerHTML = hourly.map(point => {
+            const timeLabel = formatTime(point.time);
+            const temp = formatWithUnit(point.temp, "°C");
+            const feels = formatWithUnit(point.feels, "°C");
+            const precipUnit = hourlyUnits.precipitation || "мм";
+            const precip = formatWithUnit(point.precip, precipUnit);
+            const wind = formatWithUnit(point.wind, hourlyWindUnit, hourlyWindDigits);
+            return `
+              <div class="min-w-[150px] shrink-0 rounded-2xl bg-slate-800/60 p-4">
+                <div class="text-xs uppercase tracking-wide text-slate-400">${timeLabel}</div>
+                <div class="mt-2 text-2xl font-semibold">${temp}</div>
+                <div class="text-xs text-slate-400">Ощущается: ${feels}</div>
+                <div class="mt-3 grid gap-1 text-xs text-slate-400">
+                  <div>Осадки: ${precip}</div>
+                  <div>Ветер: ${wind}</div>
+                </div>
+              </div>
+            `;
+          }).join("");
+        }
       });
     });
   }, 250);
