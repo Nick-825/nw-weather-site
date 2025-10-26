@@ -1,130 +1,178 @@
 {% extends "base.html" %}
-{% block title %}Главная — Погода{% endblock %}
+{% block title %}Главная — Погода, Новости, Курсы{% endblock %}
 {% block content %}
 
-<div class="glass" style="padding:18px 18px 8px;margin-bottom:18px">
-  <h2 style="margin:0 0 8px 0">Поиск по местоположению</h2>
-  <div style="display:grid;gap:12px">
-    <input id="city-input" placeholder="Санкт-Петербург" style="border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#0f172a;color:#fff;padding:12px 14px;outline:none" />
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" data-tab="now">Текущая</button>
-      <button class="btn" data-tab="today">Сегодня</button>
-      <button class="btn" data-tab="week">На 7 дней</button>
+<h1 class="text-2xl sm:text-3xl font-bold mb-4">Поиск по местоположению</h1>
+
+<!-- Поиск города -->
+<div class="rounded-2xl bg-slate-900/60 ring-1 ring-white/10 p-4 sm:p-5 space-y-4">
+  <div class="relative">
+    <input id="q-city" type="text" placeholder="Начните вводить город…"
+           class="w-full rounded-2xl bg-slate-900/70 ring-1 ring-white/10 px-4 py-3 outline-none focus:ring-cyan-500" autocomplete="off">
+    <div id="suggest-city" class="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl bg-slate-900 ring-1 ring-white/10 hidden"></div>
+  </div>
+
+  <!-- Переключатель режимов -->
+  <div class="flex items-center gap-2">
+    <button data-tab="current"  class="tab-btn rounded-2xl px-4 py-2 bg-white/10">Текущая</button>
+    <button data-tab="today"    class="tab-btn rounded-2xl px-4 py-2 bg-white/5">Сегодня</button>
+    <button data-tab="weekly"   class="tab-btn rounded-2xl px-4 py-2 bg-white/5">На 7 дней</button>
+  </div>
+
+  <!-- ПАНЕЛИ -->
+  <!-- ТЕКУЩАЯ -->
+  <div data-panel="current" class="rounded-2xl bg-slate-950/60 p-5 ring-1 ring-white/10 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h3 id="c-name" class="text-base font-semibold">—</h3>
+        <div id="c-time" class="text-xs text-slate-400">—</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="c-icon" class="text-3xl">☁️</span>
+        <div class="text-3xl sm:text-4xl font-bold" id="c-temp">—</div>
+      </div>
     </div>
+    <div id="c-desc" class="text-sm text-slate-400">—</div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Ощущается</div><div id="c-feels" class="font-medium">—</div></div>
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Ветер</div><div id="c-wind" class="font-medium">—</div></div>
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Давление</div><div id="c-press" class="font-medium">—</div></div>
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Влажность</div><div id="c-hum" class="font-medium">—</div></div>
+    </div>
+  </div>
+
+  <!-- СЕГОДНЯ (сводка дня) -->
+  <div data-panel="today" class="hidden rounded-2xl bg-slate-950/60 p-5 ring-1 ring-white/10 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h3 class="text-base font-semibold">Погода сегодня</h3>
+        <div id="t-date" class="text-xs text-slate-400">—</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="t-icon" class="text-3xl">☁️</span>
+      </div>
+    </div>
+    <div id="t-desc" class="text-sm text-slate-400">—</div>
+    <div class="grid grid-cols-3 gap-3 text-sm">
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Макс</div><div id="t-max" class="font-medium">—</div></div>
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Мин</div><div id="t-min" class="font-medium">—</div></div>
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Порывы</div><div id="t-wind" class="font-medium">—</div></div>
+    </div>
+    <div class="grid grid-cols-3 gap-3 text-sm">
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Осадки за сутки</div><div id="t-precip" class="font-medium">—</div></div>
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Восход</div><div id="t-sunrise" class="font-medium">—</div></div>
+      <div class="rounded-xl bg-slate-800/60 p-3"><div class="text-xs text-slate-400">Закат</div><div id="t-sunset" class="font-medium">—</div></div>
+    </div>
+  </div>
+
+  <!-- НЕДЕЛЯ -->
+  <div data-panel="weekly" class="hidden rounded-2xl bg-slate-950/60 p-5 ring-1 ring-white/10">
+    <div id="w-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
   </div>
 </div>
 
-<!-- Панель: Текущая -->
-<section id="panel-now" class="glass" style="padding:16px;display:block">
-  <h3 style="margin-top:0">Сейчас</h3>
-  <div id="now-wrap">Выберите город…</div>
-</section>
-
-<!-- Панель: Сегодня (сводка за день, без почасового списка) -->
-<section id="panel-today" class="glass" style="padding:16px;display:none">
-  <h3 style="margin-top:0">Погода сегодня</h3>
-  <div id="today-date" style="color:#9fb0c3;font-size:13px;margin-bottom:8px"></div>
-  <div id="today-desc" style="margin-bottom:8px"></div>
-  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
-    <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Макс</div><div id="today-max" style="font-weight:600"></div></div>
-    <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Мин</div><div id="today-min" style="font-weight:600"></div></div>
-    <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Порывы</div><div id="today-wind" style="font-weight:600"></div></div>
-    <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Осадки за сутки</div><div id="today-prec" style="font-weight:600"></div></div>
-    <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Восход</div><div id="today-sunrise" style="font-weight:600"></div></div>
-    <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Закат</div><div id="today-sunset" style="font-weight:600"></div></div>
-  </div>
-</section>
-
-<!-- Панель: 7 дней -->
-<section id="panel-week" class="glass" style="padding:16px;display:none">
-  <h3 style="margin-top:0">Прогноз на 7 дней</h3>
-  <div id="week-wrap">—</div>
-</section>
-
-{% endblock %}
-{% block scripts %}
 <script>
 (function(){
-  // Утилиты
+  // helpers
   const $ = s=>document.querySelector(s);
-  const fmtNum = (v,d=1)=> (typeof v==="number"&&!Number.isNaN(v)? v.toFixed(d): "—");
-  const fmtUnit = (v,u="",d=1)=> v==null? "—" : `${fmtNum(v,d)}${u && !u.startsWith('°')? ' '+u : u}`;
+  const fmtNum=(v,d=1)=> (typeof v==="number" && !Number.isNaN(v)) ? v.toFixed(d): "—";
+  const fmtUnit=(v,u="",d=1)=> v==null? "—" : `${fmtNum(v,d)}${u && !u.startsWith('°')? ' '+u : u}`;
   const fmtTime = iso => { const dt = new Date(iso); return Number.isNaN(dt)? "—" : dt.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}); };
   const fmtDate = iso => { const dt = new Date(iso); if(Number.isNaN(dt)) return "—"; const s=dt.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"}); return s[0].toUpperCase()+s.slice(1); };
-
-  // Переключение вкладок
-  const showTab = (key)=>{
-    $('#panel-now').style.display   = key==='now'?'block':'none';
-    $('#panel-today').style.display = key==='today'?'block':'none';
-    $('#panel-week').style.display  = key==='week'?'block':'none';
+  const setPanel = key => {
+    document.querySelectorAll('[data-panel]').forEach(p=> p.classList.toggle('hidden', p.getAttribute('data-panel')!==key));
+    document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('bg-white/10', b.getAttribute('data-tab')===key));
+    document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('bg-white/5', b.getAttribute('data-tab')!==key));
   };
-  document.querySelectorAll('[data-tab]').forEach(b=> b.addEventListener('click', ()=> showTab(b.dataset.tab)));
 
-  // Основной выбор города -> загрузка трёх блоков
-  async function pickCityByName(name){
-    // 1) геокод (твой бэкенд уже делает, оставляю предполагаемый эндпоинт)
-    const g = await fetch(`/api/geocode?q=${encodeURIComponent(name)}`).then(r=>r.json());
-    if(!g || !g.lat) { $('#now-wrap').textContent='Не найдено.'; return; }
-    await loadAll(g.lat, g.lon, name || g.name);
-  }
+  // автодополнение города
+  const iq = $('#q-city'), box = $('#suggest-city');
+  let db;
+  const hideBox = ()=> box.classList.add('hidden');
+  const showBox = ()=> box.classList.remove('hidden');
+  iq.addEventListener('input', ()=>{
+    clearTimeout(db);
+    const q = iq.value.trim();
+    if(!q){ hideBox(); return; }
+    db = setTimeout(async ()=>{
+      const r = await fetch(`/api/geo?q=${encodeURIComponent(q)}`);
+      const payload = await r.json();
+      const items = payload?.items||[];
+      if(!items.length){ hideBox(); return; }
+      box.innerHTML = items.slice(0,10).map(x=>`
+        <button type="button" data-lat="${x.lat}" data-lon="${x.lon}" data-name="${x.name}"
+                class="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-slate-800">
+          <span class="text-xl">${x.emoji||'📍'}</span>
+          <span class="font-medium">${x.name}</span>
+          <span class="text-xs text-slate-400 truncate">${x.country||''}</span>
+        </button>`).join('');
+      showBox();
+      box.querySelectorAll('button').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          hideBox();
+          pickCity(b.dataset.lat, b.dataset.lon, b.dataset.name);
+          iq.value = b.dataset.name;
+        });
+      });
+    }, 250);
+  });
+  document.addEventListener('click', (ev)=>{ if(!box.contains(ev.target) && ev.target!==iq) hideBox(); });
 
-  async function loadAll(lat, lon, name){
-    const w = await fetch(`/api/weather?lat=${lat}&lon=${lon}`).then(r=>r.json());
+  // заполнение панелей
+  const fillCurrent = (name,w)=>{
+    $('#c-name').textContent = name || '—';
+    $('#c-time').textContent = w.current?.time ? fmtDate(w.current.time)+' · '+fmtTime(w.current.time) : '—';
+    $('#c-icon').textContent = w.current?.icon || '☁️';
+    $('#c-temp').textContent = fmtUnit(w.current?.temp, '°C', 1);
+    $('#c-desc').textContent = w.current?.desc || '';
+    $('#c-feels').textContent = fmtUnit(w.current?.feels_like, '°C', 1);
+    $('#c-wind').textContent  = fmtUnit(w.current?.wind, w.current?.wind_unit || 'м/с', w.current?.wind_unit==='м/с'?1:0);
+    $('#c-press').textContent = fmtUnit(w.current?.pressure, w.current?.pressure_unit || 'мм рт. ст.', 0);
+    $('#c-hum').textContent   = fmtUnit(w.current?.humidity, '%', 0);
+  };
 
-    // Текущая
-    $('#now-wrap').innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:40px"> ${w.current?.icon || '☁️'} </div>
-        <div>
-          <div style="font-weight:600">${name}</div>
-          <div style="color:#9fb0c3;font-size:13px">${w.current?.desc||''}</div>
-        </div>
-      </div>
-      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
-        <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Темп.</div><div style="font-weight:600">${fmtUnit(w.current?.temp,'°C',1)}</div></div>
-        <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Ощущ.</div><div style="font-weight:600">${fmtUnit(w.current?.feels_like,'°C',1)}</div></div>
-        <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Ветер</div><div style="font-weight:600">${fmtUnit(w.current?.wind, w.current?.wind_unit||'м/с',1)}</div></div>
-        <div class="glass" style="padding:10px"><div style="color:#9fb0c3;font-size:12px">Давл.</div><div style="font-weight:600">${fmtUnit(w.current?.pressure, w.current?.pressure_unit||'мм рт. ст.',0)}</div></div>
-      </div>`;
-
-    // Сегодня (суточная сводка)
-    $('#today-date').textContent = fmtDate(w.daily?.time);
-    $('#today-desc').textContent = w.daily?.summary || w.current?.desc || '';
-    $('#today-max').textContent = fmtUnit(w.daily?.temp_max,'°C');
-    $('#today-min').textContent = fmtUnit(w.daily?.temp_min,'°C');
+  const fillToday = (w)=>{
+    $('#t-date').textContent   = fmtDate(w.daily?.time);
+    $('#t-icon').textContent   = w.current?.icon || '☁️';
+    $('#t-desc').textContent   = w.current?.desc || '';
+    $('#t-max').textContent    = fmtUnit(w.daily?.temp_max, '°C', 1);
+    $('#t-min').textContent    = fmtUnit(w.daily?.temp_min, '°C', 1);
     const windU = w.daily_units?.wind_speed_10m_max || w.hourly_units?.wind_speed_10m || 'м/с';
-    $('#today-wind').textContent = fmtUnit(w.daily?.wind_max, windU, windU==='м/с'?1:0);
-    $('#today-prec').textContent = fmtUnit(w.daily?.precip_sum, w.daily_units?.precipitation_sum || 'мм');
-    $('#today-sunrise').textContent = fmtTime(w.daily?.sunrise);
-    $('#today-sunset').textContent = fmtTime(w.daily?.sunset);
+    $('#t-wind').textContent   = fmtUnit(w.daily?.wind_max, windU, windU==='м/с'?1:0);
+    $('#t-precip').textContent = fmtUnit(w.daily?.precip_sum, w.daily_units?.precipitation_sum || 'мм', 1);
+    $('#t-sunrise').textContent= fmtTime(w.daily?.sunrise);
+    $('#t-sunset').textContent = fmtTime(w.daily?.sunset);
+  };
 
-    // 7 дней
-    const days = (w.week||[]).map(d=>`
-      <article class="glass" style="padding:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-weight:600">${fmtDate(d.time)}</div>
-            <div style="color:#9fb0c3;font-size:13px">${d.desc||''}</div>
-          </div>
-          <div style="font-size:28px">${d.icon||'⛅'}</div>
+  const fillWeekly = (w)=>{
+    const list = w.week || [];
+    $('#w-list').innerHTML = list.map(d=>`
+      <article class="rounded-2xl bg-slate-800/60 p-4 ring-1 ring-white/10">
+        <div class="flex items-center justify-between gap-3">
+          <div class="font-semibold">${fmtDate(d.date)}</div>
+          <div class="text-2xl">${d.icon||'⛅️'}</div>
         </div>
-        <div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
-          <div class="glass" style="padding:8px"><div style="color:#9fb0c3;font-size:12px">Макс</div><div style="font-weight:600">${fmtUnit(d.tmax,'°C')}</div></div>
-          <div class="glass" style="padding:8px"><div style="color:#9fb0c3;font-size:12px">Мин</div><div style="font-weight:600">${fmtUnit(d.tmin,'°C')}</div></div>
-          <div class="glass" style="padding:8px"><div style="color:#9fb0c3;font-size:12px">Осадки</div><div style="font-weight:600">${fmtUnit(d.precip, w.daily_units?.precipitation_sum || 'мм')}</div></div>
+        <div class="mt-2 text-sm text-slate-300">${d.desc||''}</div>
+        <div class="mt-3 flex items-center justify-between text-sm">
+          <div>Макс: <span class="font-medium">${fmtUnit(d.tmax,'°C',1)}</span></div>
+          <div>Мин: <span class="font-medium">${fmtUnit(d.tmin,'°C',1)}</span></div>
         </div>
       </article>`).join('');
-    $('#week-wrap').innerHTML = `<div style="display:grid;grid-template-columns:1fr;gap:12px">${days||'—'}</div>`;
-  }
+  };
 
-  // Обработчик поля ввода
-  const input = document.getElementById('city-input');
-  input.addEventListener('keydown', (e)=>{
-    if(e.key==='Enter'){ e.preventDefault(); const q=input.value.trim(); if(q) pickCityByName(q); }
+  const pickCity = async (lat,lon,name)=>{
+    const r = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+    const w = await r.json();
+    fillCurrent(name, w);      // «Текущая» — сейчас
+    fillToday(w);              // «Сегодня» — сводка дня
+    fillWeekly(w);             // неделя (если уже пришла)
+    setPanel('current');
+  };
+
+  // переключение табов
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.addEventListener('click', ()=> setPanel(b.dataset.tab));
   });
-
-  // дефолт
-  pickCityByName('Санкт-Петербург');
 })();
 </script>
 {% endblock %}
