@@ -51,6 +51,11 @@ def weather_search_page():
 def weather_weekly_page():
     return render_template("weather_weekly.html", title="Погода на 7 дней")
 
+
+@app.route("/weather/7days")
+def weather_weekly_page():
+    return render_template("weather_weekly.html", title="Погода на 7 дней")
+
 # -----------------------------
 # Внутренние API (JSON)
 # -----------------------------
@@ -141,9 +146,11 @@ def api_weather():
         "sunset": pick_first(daily, "sunset"),
     }
 
+    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
     code = cur.get("weather_code")
     icon, desc, anim = code_to_icon_desc(int(code) if code is not None else -1)
 
+        main
     return jsonify(
         {
             "current": {
@@ -153,10 +160,13 @@ def api_weather():
                 "wind": cur.get("wind_speed_10m"),
                 "wdir": cur.get("wind_direction_10m"),
                 "time": cur.get("time"),
+    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
                 "code": code,
                 "icon": icon,
                 "desc": desc,
                 "anim": anim,
+                "code": cur.get("weather_code"),
+        main
             },
             "hourly": hourly_points,
             "hourly_units": data.get("hourly_units", {}),
@@ -201,6 +211,7 @@ def api_weather_weekly():
         except IndexError:
             return None
 
+    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
     days = []
     for idx, iso_date in enumerate(times):
         code = pick(daily, "weather_code", idx)
@@ -220,6 +231,20 @@ def api_weather_weekly():
                 "sunset": pick(daily, "sunset", idx),
             }
         )
+    days = [
+        {
+            "time": iso_date,
+            "code": pick(daily, "weather_code", idx),
+            "temp_max": pick(daily, "temperature_2m_max", idx),
+            "temp_min": pick(daily, "temperature_2m_min", idx),
+            "precip_sum": pick(daily, "precipitation_sum", idx),
+            "wind_max": pick(daily, "wind_speed_10m_max", idx),
+            "sunrise": pick(daily, "sunrise", idx),
+            "sunset": pick(daily, "sunset", idx),
+        }
+        for idx, iso_date in enumerate(times)
+    ]
+        main
 
     return jsonify(
         {
@@ -228,6 +253,7 @@ def api_weather_weekly():
             "timezone": data.get("timezone_abbreviation"),
         }
     )
+    codex/add-daily-weather-output-and-7-day-forecast-tab-0p4gkz
 
 
 @app.get("/api/rates/search")
@@ -267,6 +293,8 @@ def api_rates_search():
             ],
         }
     )
+
+        main
 
 # -----------------------------
 # Тех. проверка
