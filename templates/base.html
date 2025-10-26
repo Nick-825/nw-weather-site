@@ -1,179 +1,111 @@
-<!DOCTYPE html>
-<html lang="ru">
+<!doctype html>
+<html lang="ru" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0f172a">
-  <title>{{ title or "Погода, Новости и Курсы валют" }}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{% block title %}Погода • Новости • Курсы валют{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    // Tailwind CDN (если у тебя уже подключён — оставь свой)
+  </script>
   <style>
-    :root { color-scheme: dark; --safe-inset: env(safe-area-inset-bottom, 0px); }
-    html { scroll-behavior: smooth; }
-
-    /* ===== Улучшенные анимации погоды (слои, прозрачности, параллакс, мягкое 3D) ===== */
-    @keyframes sunRays   { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-    @keyframes cloudMain { 0%,100%{transform:translateX(-8%)} 50%{transform:translateX(8%)} }
-    @keyframes cloudSub  { 0%,100%{transform:translateX(10%)} 50%{transform:translateX(-10%)} }
-    @keyframes rainDrop  { 0%{transform:translateY(-30%);opacity:0} 20%{opacity:.9} 100%{transform:translateY(110%);opacity:0} }
-    @keyframes snowFall  { 0%{transform:translate(-10%,-20%);opacity:0} 40%{opacity:.95} 100%{transform:translate(10%,110%);opacity:0} }
-    @keyframes fogSlide  { 0%{transform:translateX(-12%)} 50%{transform:translateX(12%)} 100%{transform:translateX(-12%)} }
-    @keyframes stormFlash{ 0%,100%{opacity:.3} 45%{opacity:.1} 50%{opacity:.95} 55%{opacity:.2} }
-    @keyframes calmPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
-
-    .wiggle { animation: calmPulse 2.5s ease-in-out infinite; transform-origin:center; display:inline-block; }
-    .mini-badge { font-size: 11px; line-height: 1.1; word-break: break-word; }
-
-    .weather-icon{
-      position: relative; display:inline-flex; align-items:center; justify-content:center; line-height:1;
-      perspective: 600px; /* лёгкий 3D */
-      text-shadow: 0 2px 8px rgba(0,0,0,.35);
-    }
-    .weather-icon::after, .weather-icon::before { pointer-events:none; content:""; position:absolute; }
-
-    /* Солнце */
-    .weather-icon.sunny::after {
-      inset:-32%; border-radius:9999px; border:2px solid rgba(250,204,21,.45);
-      box-shadow:
-        0 0 20px rgba(250,204,21,.35),
-        inset 0 0 30px rgba(250,204,21,.2);
-      animation:sunRays 12s linear infinite;
-      transform: translateZ(12px);
-    }
-
-    /* Переменная облачность — два слоя облаков + параллакс */
-    .weather-icon.partly::before,
-    .weather-icon.cloudy::before{
-      bottom:-6%; width:200%; height:70%; border-radius:9999px;
-      background:radial-gradient(65% 65% at 30% 45%, rgba(241,245,249,.85) 0%, rgba(148,163,184,.25) 60%, transparent 100%);
-      filter: blur(1.2px);
-      animation:cloudMain 9s ease-in-out infinite;
-      transform: translateZ(6px);
-    }
-    .weather-icon.partly::after,
-    .weather-icon.cloudy::after{
-      bottom:-10%; width:170%; height:60%; border-radius:9999px;
-      background:radial-gradient(60% 60% at 60% 55%, rgba(203,213,225,.65) 0%, rgba(100,116,139,.25) 60%, transparent 100%);
-      filter: blur(1px);
-      animation:cloudSub 13s ease-in-out infinite;
-      transform: translateZ(1px);
-      opacity:.9;
-    }
-
-    /* Дождь / ледяной дождь — прозрачные струйки с бликами */
-    .weather-icon.rainy::after, .weather-icon.icy-rain::after{
-      bottom:-22%; width:6px; height:20px; border-radius:9999px;
-      background:linear-gradient(to bottom, rgba(56,189,248,.85) 0%, rgba(14,165,233,0) 100%);
-      animation:rainDrop .9s linear infinite;
-      box-shadow:
-        -12px 2px 0 rgba(56,189,248,.55),
-        8px 8px 0 rgba(14,165,233,.5),
-        0 16px 0 rgba(56,189,248,.35);
-      transform: translateZ(14px);
-      opacity:.9;
-    }
-    .weather-icon.icy-rain::after{
-      background:linear-gradient(to bottom, rgba(191,219,254,.9) 0%, rgba(59,130,246,0) 100%);
-      box-shadow:
-        -12px 2px 0 rgba(191,219,254,.55),
-        8px 8px 0 rgba(147,197,253,.5),
-        0 16px 0 rgba(191,219,254,.35);
-    }
-
-    /* Снег */
-    .weather-icon.snowy::after{
-      bottom:-26%; width:7px; height:7px; border-radius:9999px; background:rgba(241,245,249,.95);
-      box-shadow:
-        -14px -6px 0 rgba(241,245,249,.9),
-        6px 0 0 rgba(226,232,240,.85),
-        -6px 10px 0 rgba(203,213,225,.85),
-        12px -10px 0 rgba(226,232,240,.75);
-      animation:snowFall 1.8s linear infinite;
-      transform: translateZ(10px);
-    }
-
-    /* Туман */
-    .weather-icon.foggy::after{
-      bottom:-8%; width:210%; height:58%; border-radius:9999px;
-      background:linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.4), rgba(148,163,184,.15));
-      animation:fogSlide 7s ease-in-out infinite;
-      filter: blur(3px);
-      transform: translateZ(4px);
-    }
-
-    /* Гроза */
-    .weather-icon.stormy::after{
-      bottom:-22%; width:16px; height:30px;
-      background:linear-gradient(135deg, rgba(250,204,21,.95), rgba(251,191,36,.65), rgba(249,115,22,.2));
-      clip-path:polygon(50% 0, 70% 45%, 44% 45%, 66% 100%, 30% 56%, 54% 56%);
-      animation:stormFlash 1.7s ease-in-out infinite;
-      box-shadow:0 0 14px rgba(253,224,71,.5);
-      transform: translateZ(18px) rotateX(6deg);
-    }
-
-    .weather-icon.calm { animation:calmPulse 3s ease-in-out infinite; }
+    :root { color-scheme: dark; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#0b1220;color:#e6edf6}
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+    .glass{background:rgba(15,23,42,.6);border:1px solid rgba(255,255,255,.08);border-radius:20px}
+    .btn{display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;text-decoration:none}
+    .btn:hover{background:rgba(255,255,255,.1)}
+    .nav a{padding:8px 12px;border-radius:12px;text-decoration:none;color:#e6edf6;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+    .nav a:hover{background:rgba(255,255,255,.1)}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   </style>
+  {% block head %}{% endblock %}
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-  <header class="sticky top-0 z-40 bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-slate-950/80 border-b border-white/5">
-    <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 bg-yellow-400/90 rounded-full grid place-items-center text-slate-900 font-bold wiggle">☀️</div>
-        <h1 class="font-bold text-lg sm:text-xl leading-tight">Погода • Новости • Курсы валют</h1>
-      </div>
-      <button id="mobile-menu-button" class="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40 md:hidden" aria-expanded="false" aria-controls="mobile-menu">
-        <span class="sr-only">Открыть меню</span>
-        <svg id="icon-menu" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
-        <svg id="icon-close" xmlns="http://www.w3.org/2000/svg" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-      </button>
-      <nav class="hidden md:flex gap-6 text-sm text-slate-200/80">
-        <a href="/" class="transition hover:text-white">Главная</a>
-        <a href="/rates" class="transition hover:text-white">Курсы валют</a>
-        <a href="/news" class="transition hover:text-white">Новости</a>
-        <a href="/weather" class="transition hover:text-white">Поиск местоположения</a>
-        <a href="/weather/7days" class="transition hover:text-white">Погода на 7 дней</a>
+<body class="h-full">
+  <!-- Header -->
+  <header style="position:sticky;top:0;z-index:40;background:rgba(11,18,32,.8);backdrop-filter:saturate(120%) blur(8px);border-bottom:1px solid rgba(255,255,255,.08)">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <a href="/" class="btn" style="padding:10px 12px">
+        <span style="font-size:18px">🌤️</span>
+        <strong>Погода • Новости • Курсы</strong>
+      </a>
+
+      <!-- Десктоп-навигация -->
+      <nav class="nav" style="display:none;gap:10px" id="nav-desktop">
+        <a href="/">Главная</a>
+        <a href="/rates">Курсы валют</a>
+        <a href="/news">Новости</a>
+        <a href="/weather">Поиск местоположения</a>
+        <a href="/weather/7days">Погода на 7 дней</a>
       </nav>
+
+      <!-- Кнопка мобильного меню -->
+      <button id="mobile-menu-button" class="btn" aria-expanded="false" aria-controls="mobile-menu" style="display:inline-flex">
+        <span class="sr-only">Открыть меню</span>
+        <svg id="icon-menu" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg id="icon-close" class="sr-only" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <nav id="mobile-menu" class="hidden flex-col gap-2 border-t border-white/10 px-4 pb-4 text-sm text-slate-100 md:hidden">
-      <a href="/" class="rounded-xl bg-white/5 px-4 py-2 transition hover:bg-white/10">Главная</a>
-      <a href="/rates" class="rounded-xl bg-white/5 px-4 py-2 transition hover:bg-white/10">Курсы валют</a>
-      <a href="/news" class="rounded-xl bg-white/5 px-4 py-2 transition hover:bg-white/10">Новости</a>
-      <a href="/weather" class="rounded-xl bg-white/5 px-4 py-2 transition hover:bg-white/10">Поиск местоположения</a>
-      <a href="/weather/7days" class="rounded-xl bg-white/5 px-4 py-2 transition hover:bg-white/10">Погода на 7 дней</a>
-    </nav>
   </header>
 
-  <main class="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-6 sm:px-6 sm:py-10">
+  <!-- Мобильный дроуэр -->
+  <div id="mobile-menu" class="sr-only">
+    <div id="mobile-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.5)"></div>
+    <nav style="position:fixed;right:0;top:0;height:100vh;width:min(85%,340px);background:#0b1220;border-left:1px solid rgba(255,255,255,.12);padding:16px;display:flex;flex-direction:column;gap:8px">
+      <a class="btn" href="/">Главная</a>
+      <a class="btn" href="/rates">Курсы валют</a>
+      <a class="btn" href="/news">Новости</a>
+      <a class="btn" href="/weather">Поиск местоположения</a>
+      <a class="btn" href="/weather/7days">Погода на 7 дней</a>
+    </nav>
+  </div>
+
+  <main class="container" style="padding-top:20px;padding-bottom:40px;">
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="px-4 pb-[calc(1.5rem+var(--safe-inset))] pt-6 text-center text-sm text-slate-500">
-    © 2025 Погода от
-    <a href="https://t.me/weatherinversesSPb" target="_blank" rel="noopener" class="text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-4">Васька&nbsp;Невский</a>
+  <footer class="container" style="padding-bottom:60px;color:#9fb0c3">
+    © 2025 <a href="https://t.me/weatherinversesSPb" style="color:#9ad2ff;text-decoration:none">Васька Невский</a>
   </footer>
 
   <script>
-    (function () {
-      const button = document.getElementById('mobile-menu-button');
+    // Простейшее условное отображение десктоп-меню
+    (function(){
+      const mql = window.matchMedia('(min-width: 900px)');
+      const navDesktop = document.getElementById('nav-desktop');
+      const toggleVis = () => navDesktop.style.display = mql.matches ? 'flex' : 'none';
+      toggleVis(); mql.addEventListener('change', toggleVis);
+    })();
+
+    // Дроуэр
+    (function(){
+      const btn = document.getElementById('mobile-menu-button');
       const menu = document.getElementById('mobile-menu');
-      const iconMenu = document.getElementById('icon-menu');
-      const iconClose = document.getElementById('icon-close');
-      if (!button || !menu) return;
-      button.addEventListener('click', function () {
-        const isHidden = menu.classList.toggle('hidden');
-        button.setAttribute('aria-expanded', String(!isHidden));
-        if (iconMenu && iconClose) { iconMenu.classList.toggle('hidden'); iconClose.classList.toggle('hidden'); }
-      });
-      menu.querySelectorAll('a').forEach(function (link) {
-        link.addEventListener('click', function () {
-          if (menu.classList.contains('hidden')) return;
-          menu.classList.add('hidden');
-          button.setAttribute('aria-expanded', 'false');
-          if (iconMenu && iconClose && iconMenu.classList.contains('hidden')) {
-            iconMenu.classList.remove('hidden'); iconClose.classList.add('hidden');
-          }
-        });
-      });
+      const backdrop = document.getElementById('mobile-backdrop');
+      const iMenu = document.getElementById('icon-menu');
+      const iClose = document.getElementById('icon-close');
+
+      const show = () => {
+        menu.classList.remove('sr-only');
+        iMenu.classList.add('sr-only'); iClose.classList.remove('sr-only');
+        btn.setAttribute('aria-expanded','true');
+        document.body.style.overflow='hidden';
+      };
+      const hide = () => {
+        menu.classList.add('sr-only');
+        iMenu.classList.remove('sr-only'); iClose.classList.add('sr-only');
+        btn.setAttribute('aria-expanded','false');
+        document.body.style.overflow='';
+      };
+      btn.addEventListener('click', ()=> menu.classList.contains('sr-only') ? show() : hide());
+      backdrop.addEventListener('click', hide);
+      menu.querySelectorAll('a').forEach(a=> a.addEventListener('click', hide));
     })();
   </script>
+
+  {% block scripts %}{% endblock %}
 </body>
 </html>
