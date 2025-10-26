@@ -1,155 +1,117 @@
 {% extends "base.html" %}
 {% block content %}
+<h2 class="text-2xl font-bold mb-4">Курсы валют</h2>
+<p class="text-sm text-slate-400 mb-6">Введите код (USD, EUR, CNY…) или название валюты (например, фунт, иена), выберите из списка и получите курс ЦБ РФ и динамику.</p>
 
-<div class="mx-auto flex max-w-4xl flex-col gap-6">
-  <div class="space-y-2">
-    <h2 class="flex items-center gap-3 text-3xl font-bold">
-      <span class="text-4xl">💱</span>
-      Курсы ЦБ РФ
-    </h2>
-    {% if rates_updated %}
-    <p class="text-sm text-slate-300/80">Данные обновлены: {{ rates_updated }}</p>
-    {% endif %}
+<div class="max-w-3xl">
+  <div class="relative">
+    <input id="q" type="text" placeholder="Например: фунт, иена, доллар, евро"
+           class="w-full rounded-2xl bg-slate-900/70 ring-1 ring-white/10 px-4 py-3 outline-none focus:ring-cyan-500" autocomplete="off">
+    <div id="suggest" class="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl bg-slate-900 ring-1 ring-white/10 hidden"></div>
   </div>
 
-  <div class="rounded-3xl bg-slate-900/80 p-5 ring-1 ring-white/10 shadow-lg">
-    <label for="rates-search" class="text-sm font-semibold text-slate-200">Поиск других валют</label>
-    <p class="mt-1 text-xs text-slate-400">Введите код или название валюты, чтобы узнать курс и динамику.</p>
-    <div class="relative mt-3">
-      <input id="rates-search" type="text" placeholder="Например, GBP или фунт"
-             class="w-full rounded-2xl bg-slate-950/70 px-4 py-3 text-sm ring-1 ring-white/10 outline-none focus:ring-cyan-500"
-             autocomplete="off">
-      <div id="rates-search-loading" class="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 text-xs text-cyan-200">Загрузка…</div>
-    </div>
-    <div id="rates-search-placeholder" class="mt-4 text-sm text-slate-400">По умолчанию показаны основные валюты, но вы можете найти любую доступную в ЦБ РФ.</div>
-    <div id="rates-search-empty" class="mt-4 hidden rounded-2xl border border-dashed border-white/10 p-4 text-sm text-slate-400">Ничего не найдено. Попробуйте изменить запрос.</div>
-    <div id="rates-search-results" class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"></div>
-  </div>
+  <div id="meta" class="mt-3 text-xs text-slate-400"></div>
 
-  <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-    {% for code, r in rates.items() %}
-    <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br {{ r.accent }} p-5 shadow-xl ring-1 ring-white/10">
-      <div class="absolute -right-10 -top-14 h-32 w-32 rounded-full bg-white/10 blur-3xl"></div>
-      <div class="relative flex flex-col gap-5">
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-black/20 text-4xl ring-2 ring-white/20">
-            {{ r.emoji or r.symbol or '¤' }}
-          </div>
-          <div class="min-w-0 space-y-1">
-            <div class="text-xs uppercase tracking-wide text-slate-200/80">{{ code }}</div>
-            <div class="text-lg font-semibold text-white">{{ r.name }}</div>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-3 text-white sm:flex-row sm:items-baseline sm:justify-between">
-          <div class="text-3xl font-black sm:text-4xl">
-            <span class="align-middle">{{ r.symbol or code }}</span>
-            <span class="align-middle">{{ '%.4f'|format(r.value or 0) }}</span>
-          </div>
-
-          {% if r.change is not none %}
-          {% set is_positive = r.change >= 0 %}
-          <div class="flex flex-wrap items-center gap-3 text-sm font-semibold {% if is_positive %}text-emerald-200{% else %}text-rose-200{% endif %}">
-            <span class="inline-flex items-center gap-1">
-              <span aria-hidden="true">{% if is_positive %}▲{% else %}▼{% endif %}</span>
-              <span>{{ '%.4f'|format(r.change|abs) }}</span>
-            </span>
-            {% if r.change_percent is not none %}
-            <span class="rounded-full bg-white/10 px-2 py-0.5 text-xs uppercase text-white/80">
-              {{ '%.2f'|format(r.change_percent|abs) }}%
-            </span>
-            {% endif %}
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </article>
-    {% endfor %}
-  </div>
+  <div id="list" class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"></div>
+  <div id="empty" class="mt-6 hidden rounded-2xl bg-slate-900/70 p-5 text-sm text-slate-400">Выберите валюту из подсказок, чтобы увидеть курс.</div>
 </div>
 
 <script>
-  (function(){
-    const input = document.getElementById('rates-search');
-    const results = document.getElementById('rates-search-results');
-    const placeholder = document.getElementById('rates-search-placeholder');
-    const empty = document.getElementById('rates-search-empty');
-    const loading = document.getElementById('rates-search-loading');
-    let debounce;
+(function(){
+  const $ = s => document.querySelector(s);
+  const q = $('#q');
+  const box = $('#suggest');
+  const list = $('#list');
+  const meta = $('#meta');
+  const empty = $('#empty');
+  let debounce;
 
-    const formatValue = value => {
-      if (typeof value !== 'number' || Number.isNaN(value)) {
-        return '—';
-      }
-      return value.toFixed(4);
-    };
-
-    const formatChange = (change, changePct) => {
-      if (typeof change !== 'number' || Number.isNaN(change)) {
-        return '';
-      }
-      const direction = change >= 0 ? '▲' : '▼';
-      const abs = Math.abs(change);
-      const pct = (typeof changePct === 'number' && !Number.isNaN(changePct)) ? `${Math.abs(changePct).toFixed(2)}%` : null;
-      return `${direction} ${abs.toFixed(4)}${pct ? ` • ${pct}` : ''}`;
-    };
-
-    const renderResults = items => {
-      if (!items.length) {
-        results.innerHTML = '';
-        empty.classList.remove('hidden');
-        return;
-      }
-      empty.classList.add('hidden');
-      empty.textContent = 'Ничего не найдено. Попробуйте изменить запрос.';
-      results.innerHTML = items.map(item => `
-        <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br ${item.accent || 'from-slate-800/80 to-slate-900/80'} p-4 text-sm ring-1 ring-white/10">
-          <div class="absolute -right-12 -top-16 h-28 w-28 rounded-full bg-white/10 blur-3xl"></div>
+  const render = (payload) => {
+    const items = (payload && payload.items) || [];
+    meta.textContent = payload && payload.updated ? `Данные обновлены: ${payload.updated}` : '';
+    if (!items.length) {
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    list.innerHTML = items.map(x=>{
+      const isPos = typeof x.change === 'number' ? x.change >= 0 : false;
+      const delta = (typeof x.change_percent === 'number')
+        ? `${isPos ? '▲' : '▼'} ${Math.abs(x.change_percent).toFixed(2)}%`
+        : (typeof x.change === 'number')
+          ? `${isPos ? '▲' : '▼'} ${Math.abs(x.change).toFixed(4)}`
+          : '';
+      const deltaCls = isPos ? 'text-emerald-200' : 'text-rose-200';
+      return `
+        <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br ${x.accent || 'from-slate-800/80 to-slate-900/80'} p-4 shadow-lg ring-1 ring-white/10">
+          <div class="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-white/10 blur-3xl"></div>
           <div class="relative flex flex-col gap-4">
             <div class="flex items-center gap-3">
-              <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-black/20 text-2xl ring-2 ring-white/20">${item.emoji || item.symbol || '¤'}</div>
-              <div>
-                <div class="text-xs uppercase tracking-wide text-white/80">${item.code}</div>
-                <div class="text-sm font-semibold text-white/90">${item.name || ''}</div>
+              <div class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/20 text-3xl ring-2 ring-white/20">
+                ${x.emoji || x.symbol || '¤'}
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs uppercase tracking-widest text-white/80">${x.code}</div>
+                <div class="text-base font-semibold leading-tight text-white">${x.name || ''}</div>
               </div>
             </div>
-            <div class="flex flex-col gap-2">
-              <div class="text-2xl font-bold text-white">${item.symbol || item.code} ${formatValue(item.value)}</div>
-              <div class="text-xs text-white/80">${formatChange(item.change, item.change_percent)}</div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+              <div class="text-2xl font-bold text-white sm:text-3xl">
+                <span class="align-middle">${x.symbol || x.code}</span>
+                <span class="align-middle">${(typeof x.value === 'number') ? x.value.toFixed(4) : '—'}</span>
+              </div>
+              ${delta ? `<div class="flex items-center gap-2 text-sm font-medium ${deltaCls}">${delta}</div>` : ``}
             </div>
           </div>
         </article>
-      `).join('');
-    };
+      `;
+    }).join('');
+  };
 
-    const searchRates = async query => {
-      loading.classList.remove('hidden');
-      try {
-        const res = await fetch(`/api/rates/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        renderResults(data.items || []);
-      } catch (err) {
-        empty.classList.remove('hidden');
-        empty.textContent = 'Не удалось выполнить поиск. Попробуйте позже.';
-        results.innerHTML = '';
-      } finally {
-        loading.classList.add('hidden');
-      }
-    };
+  const search = async (q) => {
+    const res = await fetch(`/api/rates/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) throw new Error('Не удалось получить курсы');
+    return res.json();
+  };
 
-    input?.addEventListener('input', () => {
-      clearTimeout(debounce);
-      const q = input.value.trim();
-      if (!q) {
-        results.innerHTML = '';
-        empty.classList.add('hidden');
-        placeholder.classList.remove('hidden');
-        return;
-      }
-      placeholder.classList.add('hidden');
-      debounce = setTimeout(() => searchRates(q), 250);
+  const buildSuggestions = (payload) => {
+    const items = (payload && payload.items) || [];
+    if (!items.length) { box.classList.add('hidden'); return; }
+    box.innerHTML = items.map(x=>`
+      <button type="button" data-code="${x.code}" class="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-slate-800">
+        <span class="text-xl">${x.emoji || x.symbol || '¤'}</span>
+        <span class="font-medium">${x.code}</span>
+        <span class="text-xs text-slate-400 truncate">${x.name || ''}</span>
+      </button>
+    `).join('');
+    box.classList.remove('hidden');
+    box.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        q.value = btn.dataset.code;
+        box.classList.add('hidden');
+        try {
+          const data = await search(btn.dataset.code);
+          render(data);
+        } catch(e){ alert(e.message || e); }
+      });
     });
-  })();
-</script>
+  };
 
+  q.addEventListener('input', ()=>{
+    clearTimeout(debounce);
+    const text = q.value.trim();
+    if (!text) { box.classList.add('hidden'); list.innerHTML=''; empty.classList.remove('hidden'); meta.textContent=''; return; }
+    debounce = setTimeout(async ()=>{
+      try {
+        const data = await search(text);
+        buildSuggestions(data);
+      } catch(e){ console.error(e); }
+    }, 250);
+  });
+
+  // первичный пустой экран
+  empty.classList.remove('hidden');
+})();
+</script>
 {% endblock %}
